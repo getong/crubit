@@ -7,6 +7,9 @@
 #include <initializer_list>
 #include <memory>
 #include <utility>
+#if __cplusplus >= 202302L
+#include <expected>
+#endif
 
 namespace rs_std {
 
@@ -16,34 +19,39 @@ struct Result final {
                 "This type should only be used via a generated specialization");
 };
 
-struct err_t {
-  explicit err_t() = default;
+#if __cplusplus >= 202302L
+using std::unexpect;
+using std::unexpect_t;
+using std::unexpected;
+#else
+struct unexpect_t {
+  explicit unexpect_t() = default;
 };
-inline constexpr err_t err{};
+inline constexpr unexpect_t unexpect{};
 
 template <typename E>
-class Err final {
+class unexpected final {
  public:
-  constexpr Err(const Err& err) = default;
-  constexpr Err(Err&& err) = default;
+  constexpr unexpected(const unexpected& err) = default;
+  constexpr unexpected(unexpected&& err) = default;
 
-  constexpr Err& operator=(const Err& err) = default;
-  constexpr Err& operator=(Err&& err) = default;
+  constexpr unexpected& operator=(const unexpected& err) = default;
+  constexpr unexpected& operator=(unexpected&& err) = default;
 
-  constexpr ~Err() = default;
+  constexpr ~unexpected() = default;
 
-  constexpr explicit Err(E&& err) : err_(std::move(err)) {};
+  constexpr explicit unexpected(E&& err) : err_(std::move(err)) {};
 
   template <typename... Args>
     requires(std::is_constructible_v<E, Args...>)
-  constexpr explicit Err(std::in_place_t, Args&&... args) {
+  constexpr explicit unexpected(std::in_place_t, Args&&... args) {
     std::construct_at(&err_, std::forward<Args>(args)...);
   };
 
   template <class U, class... Args>
     requires(std::is_constructible_v<E, std::initializer_list<U>&, Args...>)
-  constexpr explicit Err(std::in_place_t, std::initializer_list<U> il,
-                         Args&&... args) {
+  constexpr explicit unexpected(std::in_place_t, std::initializer_list<U> il,
+                                Args&&... args) {
     std::construct_at(&err_, il, std::forward<Args>(args)...);
   };
 
@@ -55,6 +63,7 @@ class Err final {
  private:
   E err_;
 };
+#endif
 
 }  // namespace rs_std
 
