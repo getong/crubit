@@ -109,3 +109,28 @@ fn test_subcommand_build_args() -> Result<(), Box<dyn std::error::Error>> {
 
     Ok(())
 }
+
+#[test] // allow_core_test
+fn test_subcommand_failing_project() -> Result<(), Box<dyn std::error::Error>> {
+    let tmp_dir = tempfile::tempdir()?;
+    let cwd = std::env::current_dir()?;
+    let project_dir = cwd.join("tests/failing_project");
+
+    let mut cmd = setup_command(&tmp_dir, &project_dir);
+    cmd.arg("cpp_api_from_rust");
+
+    let output = cmd.output().expect("Failed to execute");
+
+    // The subcommand should fail.
+    assert!(!output.status.success());
+
+    // Verify output files are NOT generated
+    let target_dir = tmp_dir.path();
+    assert!(!target_dir.join("debug/failing_project.h").exists());
+    assert!(!target_dir.join("debug/failing_project_cc_api_impl.rs").exists());
+    assert!(!target_dir.join("debug/failing_project.cpp").exists());
+    // Also the static library shouldn't be fully generated if rustc failed
+    // (though cargo might not reach the point where it creates the final `.a`).
+
+    Ok(())
+}

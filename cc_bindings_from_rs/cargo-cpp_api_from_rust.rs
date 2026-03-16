@@ -170,9 +170,7 @@ fn main() -> Result<()> {
     if !cargo_output.status.success() {
         println!("{}", String::from_utf8_lossy(&cargo_output.stdout));
         eprintln!("{}", String::from_utf8_lossy(&cargo_output.stderr));
-        bail!("cargo build failed");
-    } else {
-        println!("cargo suceeded");
+        bail!("Exiting early due to cargo build failure");
     }
 
     // Step 2: Run `cpp_api_from_rust` on the rlib file, outputting C++, rs, and h files.
