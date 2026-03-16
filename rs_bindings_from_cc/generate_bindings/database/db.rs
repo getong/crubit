@@ -7,11 +7,11 @@ use crate::code_snippet::{
 };
 use crate::function_types::{FunctionId, GeneratedFunction, ImplKind};
 use crate::rs_snippet::{LifetimeOptions, RsTypeKind, Safety};
-use arc_anyhow::{anyhow, Result};
+use arc_anyhow::{anyhow, Error, Result};
 use crubit_abi_type::CrubitAbiType;
 use error_report::{ErrorReporting, ReportFatalError};
 use ffi_types::Environment;
-use ir::{BazelLabel, CcType, Enum, Field, Func, Record, UnqualifiedIdentifier, IR};
+use ir::{BazelLabel, CcType, Enum, Field, Func, GenericItem, Record, UnqualifiedIdentifier, IR};
 use proc_macro2::Ident;
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -166,7 +166,7 @@ memoized::query_group! {
     }
 }
 
-impl BindingsGenerator<'_> {
+impl<'db> BindingsGenerator<'db> {
     /// Returns the generated bindings for the given enum.
     ///
     /// Implementation: rs_bindings_from_cc/generate_bindings/generate_enum.rs?q=function:generate_enum
@@ -231,5 +231,170 @@ impl BindingsGenerator<'_> {
                 Ok(Visibility::Public)
             }
         }
+    }
+
+    /// Returns the target that this item was defined in, if it was defined somewhere other than
+    /// `owning_target()`. This may be `Some` for class template specializations and their member
+    /// functions and is `None` otherwise.
+    pub fn defining_target(&self, item_id: ir::ItemId) -> Option<ir::BazelLabel> {
+        let ir = self.ir();
+        let item = ir.find_untyped_decl(item_id);
+        match item {
+            ir::Item::Func(f) => {
+                if let Some(parent_id) = f.enclosing_item_id
+                    && let Ok(record) = ir.find_decl::<std::rc::Rc<ir::Record>>(parent_id)
+                {
+                    return self.defining_target(record.id);
+                }
+                None
+            }
+            ir::Item::Record(r) => {
+                r.template_specialization.as_ref().map(|ts| ts.defining_target.clone())
+            }
+            ir::Item::UnsupportedItem(ui) => ui.defining_target.clone(),
+            _ => None,
+        }
+    }
+
+    /// The name of the item, readable by programmers.
+    ///
+    /// For example, `void Foo();` should have name `Foo`.
+    pub fn debug_name(&self, item_id: ir::ItemId) -> std::rc::Rc<str> {
+        let ir = self.ir();
+        let item = ir.find_untyped_decl(item_id);
+        let (id, name) = match item {
+            ir::Item::Func(f) => {
+                let mut name = ir.namespace_qualifier_from_id(f.id).format_for_cc_debug();
+                let record_name = || -> Option<std::rc::Rc<str>> {
+                    if let Some(parent_id) = f.enclosing_item_id {
+                        match ir.find_untyped_decl(parent_id) {
+                            ir::Item::ExistingRustType(existing_rust_type) => {
+                                Some(existing_rust_type.cc_name.clone())
+                            }
+                            ir::Item::Record(record) => Some(record.cc_name.identifier.clone()),
+                            ir::Item::IncompleteRecord(record) => {
+                                Some(record.cc_name.identifier.clone())
+                            }
+                            _ => None,
+                        }
+                    } else {
+                        None
+                    }
+                };
+                match &f.cc_name {
+                    ir::UnqualifiedIdentifier::Identifier(id) => {
+                        name.push_str(&id.identifier);
+                    }
+                    ir::UnqualifiedIdentifier::Operator(op) => {
+                        name.push_str(&op.cc_name());
+                    }
+                    ir::UnqualifiedIdentifier::Destructor => {
+                        name.push('~');
+                        name.push_str(
+                            &record_name().expect("destructor must be associated with a record"),
+                        );
+                    }
+                    ir::UnqualifiedIdentifier::Constructor => {
+                        name.push_str(
+                            &record_name().expect("constructor must be associated with a record"),
+                        );
+                    }
+                }
+                return name.into();
+            }
+            ir::Item::Comment(c) => {
+                return format!(
+                    "<[internal] comment at {}>",
+                    c.source_loc().as_deref().unwrap_or("<unknown loc>")
+                )
+                .into()
+            }
+            ir::Item::UseMod(u) => {
+                return format!("<[internal] use mod {}::* = {}>", u.mod_name, u.path).into()
+            }
+            ir::Item::UnsupportedItem(ui) => return ui.name.clone(),
+            ir::Item::ExistingRustType(e) => (e.id, e.cc_name.clone()),
+            ir::Item::Namespace(n) => (n.id, n.cc_name.identifier.clone()),
+            ir::Item::IncompleteRecord(r) => (r.id, r.cc_name.identifier.clone()),
+            ir::Item::Record(r) => (r.id, r.cc_name.identifier.clone()),
+            ir::Item::Enum(e) => (e.id, e.cc_name.identifier.clone()),
+            ir::Item::Constant(c) => (c.id, c.cc_name.identifier.clone()),
+            ir::Item::GlobalVar(g) => (g.id, g.cc_name.identifier.clone()),
+            ir::Item::TypeAlias(t) => (t.id, t.cc_name.identifier.clone()),
+        };
+        let qualifier = ir.namespace_qualifier_from_id(id).format_for_cc_debug();
+        return format! {"{qualifier}{name}"}.into();
+    }
+
+    pub fn new_unsupported_item(
+        &self,
+        item: &impl GenericItem,
+        path: Option<ir::UnsupportedItemPath>,
+        error: Option<Rc<ir::FormattedError>>,
+        cause: Option<Error>,
+        must_bind: bool,
+    ) -> ir::UnsupportedItem {
+        ir::UnsupportedItem::new_raw(
+            self.debug_name(item.id()),
+            item.unique_name(),
+            item.unsupported_kind(),
+            item.id(),
+            item.source_loc(),
+            self.defining_target(item.id()),
+            must_bind,
+            path,
+            error,
+            cause,
+        )
+    }
+
+    pub fn new_unsupported_item_with_static_message(
+        &self,
+        item: &impl GenericItem,
+        path: Option<ir::UnsupportedItemPath>,
+        message: &'static str,
+    ) -> ir::UnsupportedItem {
+        self.new_unsupported_item(
+            item,
+            path,
+            Some(Rc::new(ir::FormattedError { fmt: message.into(), message: message.into() })),
+            None,
+            item.must_bind(),
+        )
+    }
+
+    pub fn new_unsupported_item_with_cause(
+        &self,
+        item: &impl GenericItem,
+        path: Option<ir::UnsupportedItemPath>,
+        cause: Error,
+    ) -> ir::UnsupportedItem {
+        self.new_unsupported_item(item, path, None, Some(cause), item.must_bind())
+    }
+
+    pub fn error_item_name(&self, item_id: ir::ItemId) -> error_report::ItemName {
+        let name = self.debug_name(item_id);
+        let item = self.ir().find_untyped_decl(item_id);
+        error_report::ItemName {
+            name,
+            id: item.id().as_u64(),
+            unique_name: item.unique_name(),
+            defining_target: self
+                .defining_target(item.id())
+                .map(|ir::BazelLabel(label)| std::rc::Rc::clone(&label)),
+        }
+    }
+
+    pub fn error_scope<'a>(&'a self, item_id: ir::ItemId) -> Option<error_report::ItemScope<'a>> {
+        let item = self.ir().find_untyped_decl(item_id);
+        if matches!(item, ir::Item::Comment(_) | ir::Item::UseMod(_)) {
+            None
+        } else {
+            Some(error_report::ItemScope::new(self.errors(), self.error_item_name(item_id)))
+        }
+    }
+
+    pub fn assert_in_error_scope(&self, item_id: ir::ItemId) {
+        self.errors().assert_in_item(self.error_item_name(item_id));
     }
 }
