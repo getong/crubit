@@ -9,3 +9,6 @@
 #![allow(unused_unsafe, deprecated, non_snake_case, unreachable_code)]
 #![allow(improper_ctypes_definitions)]
 #![deny(warnings)]
+
+extern crate alloc;
+extern crate core;

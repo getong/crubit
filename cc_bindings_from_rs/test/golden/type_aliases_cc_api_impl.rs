@@ -10,6 +10,8 @@
 #![allow(improper_ctypes_definitions)]
 #![deny(warnings)]
 
+extern crate alloc;
+extern crate core;
 #[unsafe(no_mangle)]
 unsafe extern "C" fn __crubit_thunk_func_uusing_ualias() -> i32 {
     unsafe { ::type_aliases_rust_golden::test_type_aliases::func_using_alias() }

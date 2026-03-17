@@ -10,6 +10,8 @@
 #![allow(improper_ctypes_definitions)]
 #![deny(warnings)]
 
+extern crate alloc;
+extern crate core;
 #[unsafe(no_mangle)]
 unsafe extern "C" fn __crubit_thunk_add_ui32_uvia_uextern_uc_uwith_umangling(
     x: i32,

@@ -10,6 +10,8 @@
 #![allow(improper_ctypes_definitions)]
 #![deny(warnings)]
 
+extern crate alloc;
+extern crate core;
 #[unsafe(no_mangle)]
 unsafe extern "C" fn __crubit_thunk_add_utwo_uintegers(x: i32, y: i32) -> i32 {
     unsafe { ::function_annotations_rust_golden::add_two_integers(x, y) }

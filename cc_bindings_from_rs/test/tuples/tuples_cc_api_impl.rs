@@ -10,6 +10,8 @@
 #![allow(improper_ctypes_definitions)]
 #![deny(warnings)]
 
+extern crate alloc;
+extern crate core;
 const _: () = assert!(::std::mem::size_of::<::tuples_golden::AdtHoldingFiveAndSix>() == 8);
 const _: () = assert!(::std::mem::align_of::<::tuples_golden::AdtHoldingFiveAndSix>() == 4);
 const _: () = assert!(::std::mem::size_of::<::tuples_golden::NonCppMovable>() == 1);

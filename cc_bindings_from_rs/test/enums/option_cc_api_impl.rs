@@ -10,6 +10,8 @@
 #![allow(improper_ctypes_definitions)]
 #![deny(warnings)]
 
+extern crate alloc;
+extern crate core;
 const _: () = assert!(::std::mem::size_of::<::option_golden::CloneNoDefault>() == 1);
 const _: () = assert!(::std::mem::align_of::<::option_golden::CloneNoDefault>() == 1);
 #[unsafe(no_mangle)]

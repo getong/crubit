@@ -10,5 +10,7 @@
 #![allow(improper_ctypes_definitions)]
 #![deny(warnings)]
 
+extern crate alloc;
+extern crate core;
 const _: () = assert!(::std::mem::size_of::<::consts_golden::TyWithAssocConsts>() == 1);
 const _: () = assert!(::std::mem::align_of::<::consts_golden::TyWithAssocConsts>() == 1);

@@ -847,6 +847,8 @@ inline void public_function() {
 #![allow(improper_ctypes_definitions)]
 #![deny(warnings)]
 
+extern crate alloc;
+extern crate core;
 #[unsafe(no_mangle)]
 unsafe extern "C" fn __crubit_thunk_ANY_IDENTIFIER_CHARACTERS()
 -> () {

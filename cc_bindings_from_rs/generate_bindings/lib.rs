@@ -282,12 +282,30 @@ pub fn generate_bindings(db: &BindingsGenerator) -> Result<BindingsTokens> {
     };
 
     let mut extern_crate_decls: Vec<TokenStream> = vec![];
+    let (mut core_renamed, mut alloc_renamed) = (false, false);
     for (name, renamed) in db.crate_renames().iter() {
+        if name.as_ref() == "core" {
+            core_renamed = true;
+        }
+        if name.as_ref() == "alloc" {
+            alloc_renamed = true;
+        }
         let name = format_ident!("{}", name.to_string());
         let renamed = format_ident!("{}", renamed.to_string());
 
         extern_crate_decls.push(quote! {
             extern crate #name as #renamed;
+        });
+    }
+
+    if !core_renamed {
+        extern_crate_decls.push(quote! {
+            extern crate core;
+        });
+    }
+    if !alloc_renamed {
+        extern_crate_decls.push(quote! {
+            extern crate alloc;
         });
     }
 

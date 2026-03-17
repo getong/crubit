@@ -10,6 +10,8 @@
 #![allow(improper_ctypes_definitions)]
 #![deny(warnings)]
 
+extern crate alloc;
+extern crate core;
 const _: () = assert!(::std::mem::size_of::<::enums_golden::repr_c::MyEnum>() == 40);
 const _: () = assert!(::std::mem::align_of::<::enums_golden::repr_c::MyEnum>() == 8);
 #[unsafe(no_mangle)]

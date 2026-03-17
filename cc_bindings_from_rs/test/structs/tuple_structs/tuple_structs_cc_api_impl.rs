@@ -10,6 +10,8 @@
 #![allow(improper_ctypes_definitions)]
 #![deny(warnings)]
 
+extern crate alloc;
+extern crate core;
 const _: () = assert!(::std::mem::size_of::<::tuple_structs_golden::CloneNoDefault>() == 8);
 const _: () = assert!(::std::mem::align_of::<::tuple_structs_golden::CloneNoDefault>() == 8);
 #[unsafe(no_mangle)]

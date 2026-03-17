@@ -10,6 +10,8 @@
 #![allow(improper_ctypes_definitions)]
 #![deny(warnings)]
 
+extern crate alloc;
+extern crate core;
 extern crate foo_rust_proto as foo_proto;
 const _: () = assert!(::std::mem::size_of::<::rust_lib_golden::FooService>() == 8);
 const _: () = assert!(::std::mem::align_of::<::rust_lib_golden::FooService>() == 8);

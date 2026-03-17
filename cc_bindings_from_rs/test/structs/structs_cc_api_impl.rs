@@ -10,6 +10,8 @@
 #![allow(improper_ctypes_definitions)]
 #![deny(warnings)]
 
+extern crate alloc;
+extern crate core;
 const _: () =
     assert!(::std::mem::size_of::<::structs_golden::abi_classification::StructFloat>() == 16);
 const _: () =

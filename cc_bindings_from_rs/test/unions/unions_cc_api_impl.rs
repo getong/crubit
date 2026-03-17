@@ -10,6 +10,8 @@
 #![allow(improper_ctypes_definitions)]
 #![deny(warnings)]
 
+extern crate alloc;
+extern crate core;
 const _: () = assert!(::std::mem::size_of::<::unions_golden::repr_c::U>() == 4);
 const _: () = assert!(::std::mem::align_of::<::unions_golden::repr_c::U>() == 4);
 const _: () = assert!(::core::mem::offset_of!(::unions_golden::repr_c::U, x) == 0);

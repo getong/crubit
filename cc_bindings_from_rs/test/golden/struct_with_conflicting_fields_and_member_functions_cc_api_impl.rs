@@ -10,6 +10,8 @@
 #![allow(improper_ctypes_definitions)]
 #![deny(warnings)]
 
+extern crate alloc;
+extern crate core;
 const _: () = assert!(
     ::std::mem::size_of::<::struct_with_conflicting_fields_and_member_functions_rust_golden::X>()
         == 12

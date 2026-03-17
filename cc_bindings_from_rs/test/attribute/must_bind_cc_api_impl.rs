@@ -10,6 +10,8 @@
 #![allow(improper_ctypes_definitions)]
 #![deny(warnings)]
 
+extern crate alloc;
+extern crate core;
 const _: () = assert!(::std::mem::size_of::<::must_bind_golden::Original>() == 4);
 const _: () = assert!(::std::mem::align_of::<::must_bind_golden::Original>() == 4);
 #[unsafe(no_mangle)]
