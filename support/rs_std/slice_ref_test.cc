@@ -185,6 +185,17 @@ TEST(ImplicitConversionTest, FromConstArray) {
   EXPECT_THAT(kFromArray.to_span(), ElementsAre(1, 2));
 }
 
+// Generates a compiler error when uncommented:
+//
+// std::array<int, 3> TempArray() { return {1, 2, 3}; };
+//
+// TEST(DemoTest, SliceRef) {
+//   rs_std::SliceRef<const int> slice_ref(TempArray());
+//   // ^ error: temporary whose address is used as the value of local...
+//   ASSERT_EQ(slice_ref.size(), 3);
+//   EXPECT_EQ(slice_ref.to_span()[2], 3);  // BOOM
+// }
+
 void Fuzzer(std::vector<uint8_t> data) {
   const rs_std::SliceRef<const uint8_t> s = data;
   EXPECT_EQ(absl::Span<const uint8_t>(data), s.to_span());

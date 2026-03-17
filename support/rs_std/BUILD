@@ -87,6 +87,7 @@ cc_library(
         "//support:annotations_internal",
         "//support/internal:bindings_support",
         "@abseil-cpp//absl/base:core_headers",
+        "@abseil-cpp//absl/strings:string_view",
         "@abseil-cpp//absl/types:span",
     ],
 )

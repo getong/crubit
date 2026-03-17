@@ -26,6 +26,7 @@ set_target_properties(crubit_support_rs_std_slice_ref PROPERTIES LINKER_LANGUAGE
 
 target_link_libraries(crubit_support_rs_std_slice_ref PUBLIC
 absl::core_headers
+absl::string_view
 absl::span
 crubit_support_annotations_internal
 crubit_support_internal_bindings_support
