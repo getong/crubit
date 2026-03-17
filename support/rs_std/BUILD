@@ -253,14 +253,14 @@ cc_library(
 
 cpp_api_from_rust_toolchain_bindings(
     name = "rs_core",
-    cpp_namespace = "rs_core",
+    cpp_namespace = "rs::core",
     crate_name = "core",
     visibility = ["//visibility:public"],
 )
 
 cpp_api_from_rust_toolchain_bindings(
     name = "rs_alloc",
-    cpp_namespace = "rs_alloc",
+    cpp_namespace = "rs::alloc",
     crate_name = "alloc",
     visibility = ["//visibility:public"],
     deps = [":rs_core"],
@@ -268,7 +268,7 @@ cpp_api_from_rust_toolchain_bindings(
 
 cpp_api_from_rust_toolchain_bindings(
     name = "rs_std",
-    cpp_namespace = "rs_std",
+    cpp_namespace = "rs::std",
     crate_name = "std",
     visibility = ["//visibility:public"],
     deps = [
