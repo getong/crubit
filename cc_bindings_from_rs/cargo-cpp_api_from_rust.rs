@@ -137,8 +137,9 @@ fn main() -> Result<()> {
             profile_dir = filename
                 .strip_prefix(&target_dir)
                 .ok()
-                .and_then(|path| path.components().next())
-                .map(|component| component.as_str().to_owned());
+                // Remove the filename from the path.
+                .and_then(|path| path.parent())
+                .map(|path| path.to_owned());
             source_crate_rlib = artifact
                 .filenames
                 .iter()
