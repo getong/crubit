@@ -6,8 +6,8 @@
 
 use code_gen_utils::format_cc_includes;
 use database::TypeLocation;
-use generate_bindings::generate_function::get_fn_sig;
 use proc_macro2::TokenStream;
+use query_compiler::liberate_and_deanonymize_late_bound_regions;
 use quote::quote;
 use run_compiler_test_support::{find_def_id_by_name, run_compiler_for_testing};
 use rustc_middle::ty::{Ty, TyCtxt};
@@ -41,7 +41,14 @@ fn test_ty<TestFn, Expectation>(
     }
 
     fn get_test_function_ty<'tcx>(tcx: TyCtxt<'tcx>, type_location: TypeLocation) -> Ty<'tcx> {
-        let sig_mid = get_fn_sig(tcx, find_def_id_by_name(tcx, "test_function").to_def_id());
+        let sig_mid = {
+            let def_id = find_def_id_by_name(tcx, "test_function").to_def_id();
+            liberate_and_deanonymize_late_bound_regions(
+                tcx,
+                tcx.fn_sig(def_id).instantiate_identity(),
+                def_id,
+            )
+        };
         match type_location {
             TypeLocation::FnReturn { .. } => sig_mid.output(),
             TypeLocation::FnParam { .. } => sig_mid.inputs()[0],

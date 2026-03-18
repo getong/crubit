@@ -675,7 +675,11 @@ pub(crate) fn generate_thunk_call<'tcx>(
 pub(crate) fn fn_arg_idents(tcx: TyCtxt, def_id: DefId) -> Vec<Option<rustc_span::Ident>> {
     match tcx.def_kind(def_id) {
         DefKind::Ctor { .. } => {
-            vec![None; get_fn_sig(tcx, def_id).inputs().len()]
+            // Documentation of `skip_binder` says that accessing generic args in the returned value
+            // is generally incorrect, but specifically points out that it should be okay to use
+            // it to get the number of arguments of an `FnSig`.
+            let arg_count = tcx.fn_sig(def_id).skip_binder().inputs().skip_binder().len();
+            vec![None; arg_count]
         }
         _ => tcx.fn_arg_idents(def_id).iter().cloned().collect_vec(),
     }
@@ -751,12 +755,17 @@ pub fn generate_function<'tcx>(
     def_id: DefId,
 ) -> Result<ApiSnippets<'tcx>> {
     let tcx = db.tcx();
+
+    // TODO(b/281542952): Add support for `impl Into<T>` => `T` and similar substitutions.
     ensure!(
         !tcx.generics_of(def_id).requires_monomorphization(tcx),
         "Generic functions are not supported yet (b/259749023)"
     );
-
-    let sig_mid = get_fn_sig(tcx, def_id);
+    let sig_mid = liberate_and_deanonymize_late_bound_regions(
+        tcx,
+        tcx.fn_sig(def_id).instantiate_identity(),
+        def_id,
+    );
     check_fn_sig(&sig_mid)?;
 
     let trait_ref = tcx
@@ -1075,19 +1084,4 @@ pub fn check_fn_sig(sig: &ty::FnSig) -> Result<()> {
     }
 
     Ok(())
-}
-
-/// Returns the rustc_middle and rustc_hir function signatures.
-///
-/// In the case of rustc_hir, this returns the `FnDecl`, not the
-/// `rustc_hir::FnSig`, because the `FnDecl` type is used for both function
-/// pointers and actual functions. This makes it a more useful vocabulary type.
-/// `FnDecl` does drop information, but that information is already on the
-/// rustc_middle `FnSig`, so there is no loss.
-pub fn get_fn_sig<'tcx>(tcx: TyCtxt<'tcx>, def_id: DefId) -> ty::FnSig<'tcx> {
-    liberate_and_deanonymize_late_bound_regions(
-        tcx,
-        tcx.fn_sig(def_id).instantiate_identity(),
-        def_id,
-    )
 }

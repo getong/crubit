@@ -58,6 +58,7 @@ crubit_rust_test(
     rustc_flags = ["-Zallow-features=rustc_private"],
     deps = [
         ":generate_bindings",
+        ":query_compiler",
         ":test_helpers",
         "//cc_bindings_from_rs:run_compiler_test_support",
         "//cc_bindings_from_rs/generate_bindings/database",
