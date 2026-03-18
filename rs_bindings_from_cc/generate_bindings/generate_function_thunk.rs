@@ -273,7 +273,7 @@ fn generate_function_assertation_for_identifier(
     let ir = db.ir();
 
     let fn_ident = format_cc_ident(&id.identifier)?;
-    let path_to_func = ir.namespace_qualifier(func).format_for_cc()?;
+    let path_to_func = db.namespace_qualifier(func).format_for_cc()?;
     let implementation_function = quote! { :: #path_to_func #fn_ident };
     let method_qualification;
     let member_function_prefix;
@@ -308,7 +308,7 @@ fn generate_function_assertation_for_identifier(
         .map(|p| {
             let mut tt = cpp_type_name::format_cpp_type_with_references(
                 &db.rs_type_kind(p.type_.clone())?,
-                ir,
+                db,
             )?;
             if p.type_.is_const {
                 tt = quote! { #tt const };
@@ -322,7 +322,7 @@ fn generate_function_assertation_for_identifier(
 
     let mut return_type_name = cpp_type_name::format_cpp_type_with_references(
         &db.rs_type_kind(func.return_type.clone())?,
-        ir,
+        db,
     )?;
 
     if func.return_type.is_const {
@@ -395,7 +395,7 @@ pub fn generate_function_thunk_impl(
         }
         UnqualifiedIdentifier::Identifier(id) => {
             let fn_ident = format_cc_ident(&id.identifier)?;
-            let namespace_qualifier = ir.namespace_qualifier(func).format_for_cc()?;
+            let namespace_qualifier = db.namespace_qualifier(func).format_for_cc()?;
             if func.instance_method_metadata.is_some() {
                 quote! {#fn_ident}
             } else {
@@ -410,7 +410,7 @@ pub fn generate_function_thunk_impl(
         // is. Similar arguments apply to `construct_at`.
         UnqualifiedIdentifier::Constructor => {
             if let Some(parent_id) = func.enclosing_item_id {
-                let record: &Rc<Record> = ir.find_decl(parent_id)?;
+                let record: &Rc<Record> = db.find_decl(parent_id)?;
                 if is_copy_constructor(func, record.id)
                     && record.copy_constructor == SpecialMemberFunc::Unavailable
                 {
@@ -440,7 +440,7 @@ pub fn generate_function_thunk_impl(
         .iter()
         .map(|p| {
             let arg_type = db.rs_type_kind(p.type_.clone())?;
-            let cpp_type = cpp_type_name::format_cpp_type(&arg_type, ir)?;
+            let cpp_type = cpp_type_name::format_cpp_type(&arg_type, db)?;
             if let RsTypeKind::BridgeType { bridge_type, .. } = arg_type.unalias() {
                 let ident = format_cc_ident(&p.identifier.identifier)?;
                 match bridge_type {
@@ -538,7 +538,7 @@ pub fn generate_function_thunk_impl(
     // computation, so that it's only in the parameter list, not the argument
     // list.)
     let return_type_kind = db.rs_type_kind(func.return_type.clone())?;
-    let return_type_cpp_spelling = cpp_type_name::format_cpp_type(&return_type_kind, ir)?;
+    let return_type_cpp_spelling = cpp_type_name::format_cpp_type(&return_type_kind, db)?;
 
     let return_type_name = match return_type_kind.passing_convention() {
         PassingConvention::ComposablyBridged => {
@@ -641,7 +641,7 @@ pub fn generate_function_thunk_impl(
                 }) => {
                     let nested_type = cpp_type_name::format_cpp_type_with_references(
                         &db.rs_type_kind(func.return_type.clone())?,
-                        ir,
+                        db,
                     )?;
                     quote! {
                         #nested_type lvalue = #return_expr;

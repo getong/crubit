@@ -17,6 +17,42 @@ use std::collections::{HashMap, HashSet};
 use std::iter::Iterator;
 use std::rc::Rc;
 
+// TODO(b/492229823): This trait is a temporary artifact for refactoring. Remove this trait and
+// update the tests in this file.
+trait IrTestingExt {
+    fn find_untyped_decl(&self, decl_id: ir::ItemId) -> &ir::Item;
+    fn find_decl<'a, T>(&'a self, decl_id: ir::ItemId) -> Result<&'a T>
+    where
+        &'a T: TryFrom<&'a ir::Item>;
+}
+
+impl IrTestingExt for IR {
+    #[track_caller]
+    fn find_untyped_decl(&self, decl_id: ir::ItemId) -> &ir::Item {
+        let Some(idx) = self.item_id_to_item_idx().get(&decl_id) else {
+            panic!("Couldn't find decl_id {:?} in the IR:\n{:#?}", decl_id, self.flat_ir())
+        };
+        let Some(item) = self.flat_ir().items.get(*idx) else {
+            panic!("Couldn't find an item at idx {} in IR:\n{:#?}", idx, self.flat_ir())
+        };
+        item
+    }
+
+    #[track_caller]
+    fn find_decl<'a, T>(&'a self, decl_id: ir::ItemId) -> Result<&'a T>
+    where
+        &'a T: TryFrom<&'a ir::Item>,
+    {
+        self.find_untyped_decl(decl_id).try_into().map_err(|_| {
+            arc_anyhow::anyhow!(
+                "DeclId {:?} doesn't refer to a {}",
+                decl_id,
+                std::any::type_name::<T>()
+            )
+        })
+    }
+}
+
 fn ir_from_cc(header: &str) -> Result<IR> {
     ir_testing::ir_from_cc(multiplatform_testing::test_platform(), header)
 }

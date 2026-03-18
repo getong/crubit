@@ -192,7 +192,7 @@ fn test_generate_unsupported_item_with_environment_production() -> Result<()> {
         .into(),
     )
     .generated_items;
-    let actual = code_snippet::generated_items_to_token_stream(&actual, db.ir(), &[TEST_ITEM_ID]);
+    let actual = code_snippet::generated_items_to_token_stream(&actual, &db, &[TEST_ITEM_ID]);
     let expected = "Generated from: some/header;l=1\nerror: item `test_item` could not be bound\n  unsupported_message";
     assert_rs_matches!(quote! { #actual }, quote! { __COMMENT__ #expected});
     Ok(())
@@ -224,7 +224,7 @@ fn test_generate_unsupported_item_with_missing_source_loc() -> Result<()> {
         .into(),
     )
     .generated_items;
-    let actual = code_snippet::generated_items_to_token_stream(&actual, db.ir(), &[TEST_ITEM_ID]);
+    let actual = code_snippet::generated_items_to_token_stream(&actual, &db, &[TEST_ITEM_ID]);
     let expected = "error: item `test_item` could not be bound\n  unsupported_message";
     assert_rs_matches!(quote! { #actual }, quote! { __COMMENT__ #expected});
     Ok(())
@@ -253,7 +253,7 @@ fn test_generate_unsupported_item_with_environment_golden_test() -> Result<()> {
         .into(),
     )
     .generated_items;
-    let actual = code_snippet::generated_items_to_token_stream(&actual, db.ir(), &[TEST_ITEM_ID]);
+    let actual = code_snippet::generated_items_to_token_stream(&actual, &db, &[TEST_ITEM_ID]);
     let expected = "error: item `test_item` could not be bound\n  unsupported_message";
     assert_rs_matches!(quote! { #actual }, quote! { __COMMENT__ #expected});
     Ok(())

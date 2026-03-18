@@ -6,8 +6,8 @@
 //! `rs_bindings_from_cc/ir.h` for more
 //! information.
 
-use arc_anyhow::{anyhow, bail, ensure, Context, Error, Result};
-use code_gen_utils::{make_rs_ident, NamespaceQualifier};
+use arc_anyhow::{bail, ensure, Context, Error, Result};
+use code_gen_utils::make_rs_ident;
 use crubit_feature::CrubitFeature;
 use proc_macro2::{Ident, TokenStream};
 use quote::{quote, ToTokens};
@@ -2172,6 +2172,10 @@ impl IR {
         &self.flat_ir
     }
 
+    pub fn item_id_to_item_idx(&self) -> &HashMap<ItemId, usize> {
+        &self.item_id_to_item_idx
+    }
+
     pub fn lifetimes(&self) -> impl Iterator<Item = (&LifetimeId, &LifetimeName)> {
         self.lifetimes.iter()
     }
@@ -2250,38 +2254,6 @@ impl IR {
             Item::Namespace(ns) => Some(ns),
             _ => None,
         })
-    }
-
-    pub fn item_for_type<T>(&self, ty: &T) -> Result<&Item>
-    where
-        T: TypeWithDeclId + Debug,
-    {
-        if let Some(decl_id) = ty.decl_id() {
-            Ok(self.find_untyped_decl(decl_id))
-        } else {
-            bail!("Type {:?} does not have an associated item.", ty)
-        }
-    }
-
-    #[track_caller]
-    pub fn find_decl<'a, T>(&'a self, decl_id: ItemId) -> Result<&'a T>
-    where
-        &'a T: TryFrom<&'a Item>,
-    {
-        self.find_untyped_decl(decl_id).try_into().map_err(|_| {
-            anyhow!("DeclId {:?} doesn't refer to a {}", decl_id, std::any::type_name::<T>())
-        })
-    }
-
-    #[track_caller]
-    pub fn find_untyped_decl(&self, decl_id: ItemId) -> &Item {
-        let Some(idx) = self.item_id_to_item_idx.get(&decl_id) else {
-            panic!("Couldn't find decl_id {:?} in the IR:\n{:#?}", decl_id, self.flat_ir)
-        };
-        let Some(item) = self.flat_ir.items.get(*idx) else {
-            panic!("Couldn't find an item at idx {} in IR:\n{:#?}", idx, self.flat_ir)
-        };
-        item
     }
 
     /// Returns whether `target` is the current target.
@@ -2368,51 +2340,6 @@ impl IR {
         function_name: &UnqualifiedIdentifier,
     ) -> impl Iterator<Item = &Rc<Func>> {
         self.function_name_to_functions.get(function_name).map_or([].iter(), |v| v.iter())
-    }
-
-    pub fn namespace_qualifier(&self, item: &impl GenericItem) -> NamespaceQualifier {
-        self.namespace_qualifier_from_id(item.id())
-    }
-
-    #[track_caller]
-    pub fn namespace_qualifier_from_id(&self, item_id: ItemId) -> NamespaceQualifier {
-        let mut namespaces = vec![];
-        let mut nested_records = vec![];
-        let mut enclosing_item_id = self.find_untyped_decl(item_id).enclosing_item_id();
-        while let Some(parent_id) = enclosing_item_id {
-            match self.find_untyped_decl(parent_id) {
-                Item::Namespace(ns) => {
-                    namespaces.push(ns.rs_name.identifier.clone());
-                    enclosing_item_id = ns.enclosing_item_id;
-                }
-                Item::Record(parent_record) => {
-                    assert!(
-                        namespaces.is_empty(),
-                        "Record was listed as the enclosing item for a namespace, this is a bug."
-                    );
-                    nested_records.push((
-                        parent_record.rs_name.identifier.clone(),
-                        parent_record.cc_name.identifier.clone(),
-                    ));
-                    enclosing_item_id = parent_record.enclosing_item_id;
-                }
-                Item::ExistingRustType(rust_type) => {
-                    assert!(
-                        namespaces.is_empty(),
-                        "An existing rust type was listed as the enclosing item for a namespace, this is a bug."
-                    );
-                    nested_records.push((rust_type.rs_name.clone(), rust_type.cc_name.clone()));
-                    // The cc_name and rs_name are fully qualified already.
-                    enclosing_item_id = None;
-                }
-                item => {
-                    panic!("Expected namespace or parent record, found enclosing item: {item:#?}");
-                }
-            }
-        }
-        namespaces.reverse();
-        nested_records.reverse();
-        NamespaceQualifier { namespaces, nested_records }
     }
 }
 

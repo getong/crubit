@@ -71,11 +71,11 @@ pub fn dyn_callable_crubit_abi_type(
         FnTrait::FnOnce => quote! { && },
     };
 
-    let cpp_return_type = cpp_type_name::format_cpp_type(&callable.return_type, db.ir())?;
+    let cpp_return_type = cpp_type_name::format_cpp_type(&callable.return_type, db)?;
     let cpp_param_types = callable
         .param_types
         .iter()
-        .map(|param_ty| cpp_type_name::format_cpp_type(param_ty, db.ir()))
+        .map(|param_ty| cpp_type_name::format_cpp_type(param_ty, db))
         .collect::<Result<Vec<_>>>()?;
     let cpp_fn_sig = quote! {
         #cpp_return_type(#(#cpp_param_types),*) #qualifier

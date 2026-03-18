@@ -14,7 +14,7 @@ use flagset::FlagSet;
 use heck::ToSnakeCase;
 use ir::{
     BazelLabel, GenericItem, IntegerConstant, Item, ItemId, Namespace, RecordType,
-    UnqualifiedIdentifier, IR,
+    UnqualifiedIdentifier,
 };
 use proc_macro2::{Ident, Literal, TokenStream};
 use quote::format_ident;
@@ -507,13 +507,13 @@ impl ResolvedTypeName {
     }
 }
 
-pub fn generated_items_to_token_stream(
+pub fn generated_items_to_token_stream<'db>(
     generated_items: &HashMap<ItemId, GeneratedItem>,
-    ir: &IR,
+    db: &'db crate::BindingsGenerator<'db>,
     elements: &[ItemId],
 ) -> TokenStream {
     let mut tokens = quote! {};
-    generated_items_to_tokens(generated_items, ir, elements, &mut tokens);
+    generated_items_to_tokens(generated_items, db, elements, &mut tokens);
     tokens
 }
 
@@ -559,9 +559,9 @@ pub fn integer_constant_to_token_stream(
     })
 }
 
-pub fn generated_items_to_tokens(
+pub fn generated_items_to_tokens<'db>(
     generated_items: &HashMap<ItemId, GeneratedItem>,
-    ir: &IR,
+    db: &'db crate::BindingsGenerator<'db>,
     elements: &[ItemId],
     tokens: &mut TokenStream,
 ) {
@@ -719,7 +719,7 @@ pub fn generated_items_to_tokens(
                 }
                 .to_tokens(tokens);
 
-                generated_items_to_tokens(generated_items, ir, items, tokens);
+                generated_items_to_tokens(generated_items, db, items, tokens);
 
                 quote! { #( #indirect_functions __NEWLINE__ __NEWLINE__ )* }.to_tokens(tokens);
 
@@ -780,7 +780,7 @@ pub fn generated_items_to_tokens(
                 if !nested_items.is_empty() {
                     let snake_case_name = make_rs_ident(&ident.to_string().to_snake_case());
                     let nested_items_to_tokens =
-                        generated_items_to_token_stream(generated_items, ir, nested_items);
+                        generated_items_to_token_stream(generated_items, db, nested_items);
                     quote! {
                         pub mod #snake_case_name {
                             #[allow(unused_imports)]
@@ -804,10 +804,11 @@ pub fn generated_items_to_tokens(
                 // in sometimes getting a canonical namespace that's not in our target.
                 // We do not have to worry about getting items from other targets though because Crubit
                 // only generates items for this target.
-                let namespace =
-                    ir.find_decl::<Rc<Namespace>>(id).expect("should always be a namespace");
-                let is_last_reopened_namespace_in_this_target = ir
-                    .is_last_reopened_namespace(id, namespace.canonical_namespace_id)
+                let current_namespace: &Rc<ir::Namespace> =
+                    db.find_decl::<Rc<Namespace>>(id).expect("should always be a namespace");
+                let is_last_reopened_namespace_in_this_target = db
+                    .ir()
+                    .is_last_reopened_namespace(id, current_namespace.canonical_namespace_id)
                     .expect("should always be a namespace");
 
                 if !is_last_reopened_namespace_in_this_target {
@@ -819,16 +820,16 @@ pub fn generated_items_to_tokens(
                 // canonical namespace id.
 
                 let Some(GeneratedItem::CanonicalNamespace { items }) =
-                    generated_items.get(&namespace.canonical_namespace_id)
+                    generated_items.get(&current_namespace.canonical_namespace_id)
                 else {
                     panic!("the entry we generated for the canonical namespace should be a GeneratedItem::CanonicalNamespace");
                 };
 
-                let namespace_tokens = generated_items_to_token_stream(generated_items, ir, items);
+                let namespace_tokens = generated_items_to_token_stream(generated_items, db, items);
 
-                let canonical_namespace: &Rc<ir::Namespace> = ir
-                    .find_decl(namespace.canonical_namespace_id)
-                    .expect("should always be a namespace");
+                let canonical_namespace: &Rc<ir::Namespace> = db
+                    .find_decl(current_namespace.canonical_namespace_id)
+                    .unwrap_or_else(|_| panic!("Namespace canonical_namespace_id {:?} not found as a valid Namespace item.", current_namespace.canonical_namespace_id));
                 let name = make_rs_ident(&canonical_namespace.rs_name.identifier);
 
                 quote! {

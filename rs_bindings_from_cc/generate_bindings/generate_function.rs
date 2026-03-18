@@ -211,7 +211,7 @@ fn is_friend_of_record_not_visible_by_adl(
 ) -> bool {
     let Some(decl_id) = func.adl_enclosing_record else { return false };
     let ir = db.ir();
-    let adl_enclosing_record = ir
+    let adl_enclosing_record = db
         .find_decl::<Rc<Record>>(decl_id)
         .with_context(|| format!("Failed to look up `adl_enclosing_record` of {:?}", func))
         .unwrap();
@@ -885,8 +885,7 @@ fn api_func_shape(
     param_types: &mut [RsTypeKind],
     errors: &Errors,
 ) -> Option<(Ident, ImplKind)> {
-    let ir = db.ir();
-    let maybe_record = match func.enclosing_item_id.map(|id| ir.find_untyped_decl(id)) {
+    let maybe_record = match func.enclosing_item_id.map(|id| db.find_untyped_decl(id)) {
         None => None,
         Some(ir::Item::Namespace(_)) => None,
         Some(ir::Item::Record(record)) => Some(record),
@@ -1459,7 +1458,7 @@ pub fn generate_function(
     if impl_kind.is_unsafe() {
         db.errors().add_category(error_report::Category::Unsafe);
     }
-    let namespace_qualifier = ir.namespace_qualifier(&func).format_for_rs();
+    let namespace_qualifier = db.namespace_qualifier(&func).format_for_rs();
 
     if let Err(err) = return_type.check_by_value() {
         // If the return type is not valid, we can't generate even a fake thunk, so we must return
@@ -1883,7 +1882,7 @@ pub fn generate_function(
                 }
                 #extra_items
             };
-            let record_qualifier = ir.namespace_qualifier(&trait_record).format_for_rs();
+            let record_qualifier = db.namespace_qualifier(&trait_record).format_for_rs();
             function_id = FunctionId {
                 self_type: Some(syn::parse2(quote! { #record_qualifier #record_name }).unwrap()),
                 function_path: {
@@ -2376,13 +2375,13 @@ fn has_copy_assignment_operator_from_const_reference(
     let Some(parent_id) = copy_constructor.enclosing_item_id else {
         return false;
     };
-    let Ok(record) = db.ir().find_decl::<Rc<Record>>(parent_id) else {
+    let Ok(record) = db.find_decl::<Rc<Record>>(parent_id) else {
         return false;
     };
     record
         .child_item_ids
         .iter()
-        .filter_map(|&child_item_id| db.ir().find_decl::<Rc<Func>>(child_item_id).ok())
+        .filter_map(|&child_item_id| db.find_decl::<Rc<Func>>(child_item_id).ok())
         .any(|func| {
             let operator_equals = matches!(&func.cc_name,
                     UnqualifiedIdentifier::Operator(op) if op.name.as_ref() == "=");

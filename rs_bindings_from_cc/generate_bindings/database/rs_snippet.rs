@@ -780,7 +780,7 @@ impl RsTypeKind {
         }
         let crate_path = Rc::new(CratePath::new(
             &ir,
-            ir.namespace_qualifier(&type_alias),
+            db.namespace_qualifier(&type_alias),
             rs_imported_crate_name(&type_alias.owning_target, &ir),
         ));
         Ok(RsTypeKind::TypeAlias {
@@ -805,7 +805,7 @@ impl RsTypeKind {
 
         let crate_path = Rc::new(CratePath::new(
             ir,
-            ir.namespace_qualifier(&record),
+            db.namespace_qualifier(&record),
             rs_imported_crate_name(&record.owning_target, ir),
         ));
 
@@ -833,7 +833,7 @@ impl RsTypeKind {
         let ir = db.ir();
         let crate_path = Rc::new(CratePath::new(
             ir,
-            ir.namespace_qualifier(&incomplete_record),
+            db.namespace_qualifier(&incomplete_record),
             rs_imported_crate_name(&incomplete_record.owning_target, ir),
         ));
         Ok(RsTypeKind::IncompleteRecord { incomplete_record, crate_path })
@@ -843,7 +843,7 @@ impl RsTypeKind {
         let ir = db.ir();
         let crate_path = Rc::new(CratePath::new(
             ir,
-            ir.namespace_qualifier(&enum_),
+            db.namespace_qualifier(&enum_),
             rs_imported_crate_name(&enum_.owning_target, ir),
         ));
         Ok(RsTypeKind::Enum { enum_, crate_path })

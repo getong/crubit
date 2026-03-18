@@ -44,12 +44,9 @@ pub fn rs_type_kind_with_lifetime_elision(
                     None
                 };
                 pointee = RsTypeKind::Error {
-                    symbol: cpp_type_name::cpp_tagless_type_name_for_record(
-                        original_type,
-                        db.ir(),
-                    )?
-                    .to_string()
-                    .into(),
+                    symbol: cpp_type_name::cpp_tagless_type_name_for_record(original_type, db)?
+                        .to_string()
+                        .into(),
                     error: anyhow!("Bridging types are not supported as pointee/referent types."),
                     visibility_override,
                 };
@@ -142,8 +139,7 @@ pub fn rs_type_kind_with_lifetime_elision(
             })
         }
         CcTypeVariant::Decl(id) => {
-            let ir = db.ir();
-            let item = ir.find_untyped_decl(*id);
+            let item = db.find_untyped_decl(*id);
 
             if let Err(no_bindings_reason) = db.has_bindings(item.clone()) {
                 let error: Error;
@@ -179,7 +175,7 @@ pub fn rs_type_kind_with_lifetime_elision(
                     error = no_bindings_reason.into();
                 }
                 // Comprehensive fallbacks: if we can delay reifying the error, delay it.
-                if let Ok(symbol) = cpp_type_name::tagless_cpp_type_name_for_item(item, db.ir()) {
+                if let Ok(symbol) = cpp_type_name::tagless_cpp_type_name_for_item(item, db) {
                     return Ok(RsTypeKind::Error {
                         symbol: symbol.to_string().into(),
                         error,

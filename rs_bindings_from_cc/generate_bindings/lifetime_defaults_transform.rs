@@ -147,6 +147,11 @@ impl<'a> LifetimeDefaults<'a> {
         LifetimeDefaults { ir, bindings: BindingContext::new() }
     }
 
+    fn find_untyped_decl(&self, decl_id: ItemId) -> &'a Item {
+        let idx = self.ir.item_id_to_item_idx().get(&decl_id).unwrap();
+        &self.ir.flat_ir().items[*idx]
+    }
+
     /// Returns a state representing the given `lifetime`.
     fn get_state_for_annotated_lifetime(
         &mut self,
@@ -180,7 +185,7 @@ impl<'a> LifetimeDefaults<'a> {
     }
 
     fn decl_binds_lifetimes(&mut self, id: &ItemId) -> bool {
-        match self.ir.find_untyped_decl(*id) {
+        match self.find_untyped_decl(*id) {
             // TODO(zarko): Here, we look for the explicit renaming we do in type_alias.cc. What
             // we actually want to do is recursively check ta.underlying_type (since anyone's free
             // to invent their own aliases for string_view). More generally, a type alias can bind
@@ -410,7 +415,7 @@ impl<'a> LifetimeDefaults<'a> {
 
     fn bind_lifetime_inputs(&mut self, id: Option<ItemId>) -> Result<()> {
         let item = if let Some(id) = id {
-            self.ir.find_untyped_decl(id)
+            self.find_untyped_decl(id)
         } else {
             return Ok(());
         };

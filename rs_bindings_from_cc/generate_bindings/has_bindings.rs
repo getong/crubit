@@ -17,8 +17,6 @@ use std::rc::Rc;
 
 /// Implementation of `BindingsGenerator::has_bindings`.
 pub fn has_bindings(db: &BindingsGenerator, item: Item) -> Result<BindingsInfo, NoBindingsReason> {
-    let ir = db.ir();
-
     if let Some(name) = item.cc_name_as_str() {
         // Dunder namespaces are allowed for now.
         if name.starts_with("__") && !matches!(item, Item::Namespace(_)) {
@@ -40,7 +38,7 @@ pub fn has_bindings(db: &BindingsGenerator, item: Item) -> Result<BindingsInfo, 
     }
 
     if let Some(parent) = item.enclosing_item_id() {
-        let parent = ir.find_untyped_decl(parent);
+        let parent = db.find_untyped_decl(parent);
 
         if let Err(no_parent_bindings) = db.has_bindings(parent.clone()) {
             return Err(NoBindingsReason::DependencyFailed {
@@ -109,7 +107,7 @@ pub fn has_bindings(db: &BindingsGenerator, item: Item) -> Result<BindingsInfo, 
                         parent_names_that_map_to_same_name: parent_records_that_map_to_this_name
                             .iter()
                             .map(|&parent_record_id| {
-                                ir.find_decl::<Rc<Record>>(parent_record_id)
+                                db.find_decl::<Rc<Record>>(parent_record_id)
                                     .unwrap()
                                     .rs_name
                                     .identifier
@@ -421,7 +419,7 @@ pub fn resolve_type_names(
     parent: Rc<Record>,
 ) -> Result<Rc<HashMap<Rc<str>, ResolvedTypeName>>> {
     let child_item_ids: &[ItemId] =
-        match parent.enclosing_item_id.map(|id| db.ir().find_untyped_decl(id)) {
+        match parent.enclosing_item_id.map(|id| db.find_untyped_decl(id)) {
             Some(Item::Namespace(ns)) => &ns.child_item_ids,
             Some(Item::Record(record)) => &record.child_item_ids,
             None => db.ir().top_level_item_ids_in_target(&parent.owning_target),
@@ -445,7 +443,7 @@ pub fn resolve_type_names(
     };
 
     for &id in child_item_ids {
-        match db.ir().find_untyped_decl(id) {
+        match db.find_untyped_decl(id) {
             Item::IncompleteRecord(incomplete_record) => {
                 insert(
                     incomplete_record.rs_name.identifier.clone(),
@@ -455,7 +453,7 @@ pub fn resolve_type_names(
             Item::Record(record) => {
                 insert(record.rs_name.identifier.clone(), ResolvedTypeName::ExplicitItem(id));
                 let make_module_for_nested_items = record.child_item_ids.iter().any(|id| {
-                    db.ir().find_untyped_decl(*id).place_in_nested_module_if_nested_in_record()
+                    db.find_untyped_decl(*id).place_in_nested_module_if_nested_in_record()
                 });
                 if make_module_for_nested_items {
                     insert(

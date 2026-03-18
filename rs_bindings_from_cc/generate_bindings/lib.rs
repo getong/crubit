@@ -225,11 +225,11 @@ fn generate_global_var(db: &BindingsGenerator, var: &GlobalVar) -> Result<ApiSni
 
 fn generate_namespace(db: &BindingsGenerator, namespace: Rc<Namespace>) -> Result<ApiSnippets> {
     db.errors().add_category(error_report::Category::Namespace);
-    let ir = db.ir();
+
     let mut api_snippets = ApiSnippets::default();
 
     for &item_id in &namespace.child_item_ids {
-        let item = ir.find_untyped_decl(item_id);
+        let item = db.find_untyped_decl(item_id);
         api_snippets.append(db.generate_item(item.clone())?);
     }
 
@@ -431,7 +431,7 @@ pub fn generate_bindings_tokens(
     }
 
     for top_level_item_id in ir.top_level_item_ids() {
-        let item = ir.find_untyped_decl(*top_level_item_id);
+        let item = db.find_untyped_decl(*top_level_item_id);
         snippets.append(db.generate_item(item.clone())?);
     }
 
@@ -501,7 +501,7 @@ pub fn generate_bindings_tokens(
     } = snippets;
     let main_api = code_snippet::generated_items_to_token_stream(
         &generated_items,
-        ir,
+        &db,
         ir.top_level_item_ids(),
     );
 
@@ -949,7 +949,7 @@ fn crubit_abi_type(db: &BindingsGenerator, rs_type_kind: RsTypeKind) -> Result<C
         }
         RsTypeKind::Pointer { pointee, kind, mutability } => {
             let rust_tokens = pointee.to_token_stream(db);
-            let cpp_tokens = format_cpp_type_with_references(&pointee, db.ir())?;
+            let cpp_tokens = format_cpp_type_with_references(&pointee, db)?;
 
             Ok(CrubitAbiType::Ptr {
                 is_const: mutability == Mutability::Const,
@@ -1028,7 +1028,7 @@ fn crubit_abi_type(db: &BindingsGenerator, rs_type_kind: RsTypeKind) -> Result<C
                 let rust_abi_path =
                     make_rust_abi_path_from_str("ProtoMessageRustBridge", ir, &target);
 
-                let cpp_namespace_qualifier = ir.namespace_qualifier(original_type.as_ref());
+                let cpp_namespace_qualifier = db.namespace_qualifier(original_type.as_ref());
 
                 // Rust message types are exported to crate root, but we need the full namespace for the C++ ABI.
                 let merged_cpp_abi_path = cpp_namespace_qualifier.parts().join("::")
@@ -1207,13 +1207,11 @@ fn generate_dyn_callable_invoker_and_manager_decls(
         .map(|(param_ident, param_type)| -> Option<TokenStream> {
             match param_type.passing_convention() {
                 PassingConvention::AbiCompatible => {
-                    let param_type_tokens =
-                        cpp_type_name::format_cpp_type(param_type, db.ir()).ok()?;
+                    let param_type_tokens = cpp_type_name::format_cpp_type(param_type, db).ok()?;
                     Some(quote! { , #param_type_tokens #param_ident })
                 }
                 PassingConvention::LayoutCompatible => {
-                    let param_type_tokens =
-                        cpp_type_name::format_cpp_type(param_type, db.ir()).ok()?;
+                    let param_type_tokens = cpp_type_name::format_cpp_type(param_type, db).ok()?;
                     Some(quote! { , #param_type_tokens* #param_ident })
                 }
                 PassingConvention::ComposablyBridged => {
@@ -1232,11 +1230,11 @@ fn generate_dyn_callable_invoker_and_manager_decls(
         PassingConvention::AbiCompatible => {
             out_param = None;
             decl_return_type_tokens =
-                cpp_type_name::format_cpp_type(&callable.return_type, db.ir()).ok()?;
+                cpp_type_name::format_cpp_type(&callable.return_type, db).ok()?;
         }
         PassingConvention::LayoutCompatible => {
             let return_type_tokens =
-                cpp_type_name::format_cpp_type(&callable.return_type, db.ir()).ok()?;
+                cpp_type_name::format_cpp_type(&callable.return_type, db).ok()?;
             out_param = Some(quote! { , #return_type_tokens* out });
             decl_return_type_tokens = quote! { void };
         }
@@ -1505,7 +1503,7 @@ fn make_cpp_type_from_item(
     cc_name: &str,
     db: &BindingsGenerator,
 ) -> Result<TokenStream> {
-    let namespace_qualifier = db.ir().namespace_qualifier(item);
+    let namespace_qualifier = db.namespace_qualifier(item);
     let namespace_parts = namespace_qualifier.parts().map(|part| make_rs_ident(part));
     let cpp_type = cc_name
         .parse::<TokenStream>()

@@ -65,7 +65,7 @@ pub fn generate_incomplete_record(
         .unwrap_or_default()
         .visibility;
     let cc_type = expect_format_cc_type_name(incomplete_record.cc_name.identifier.as_ref());
-    let namespace_qualifier = db.ir().namespace_qualifier(&incomplete_record).format_for_cc()?;
+    let namespace_qualifier = db.namespace_qualifier(&incomplete_record).format_for_cc()?;
     Ok(ApiSnippets {
         generated_items: HashMap::from([(
             incomplete_record.id,
@@ -174,7 +174,7 @@ fn collect_unqualified_member_functions_from_all_bases(
         .unambiguous_public_bases
         .iter()
         .flat_map(|base_class| {
-            let Ok(item) = ir.find_decl::<Item>(base_class.base_record_id) else {
+            let Ok(item) = db.find_decl::<Item>(base_class.base_record_id) else {
                 return vec![];
             };
 
@@ -193,12 +193,11 @@ pub fn collect_unqualified_member_functions(
     db: &BindingsGenerator,
     record: Rc<Record>,
 ) -> Rc<[Rc<Func>]> {
-    let ir = db.ir();
     record
         .child_item_ids
         .iter()
         .filter_map(|id| {
-            let Ok(child_item) = ir.find_decl::<Item>(*id) else {
+            let Ok(child_item) = db.find_decl::<Item>(*id) else {
                 return None;
             };
 
@@ -400,7 +399,7 @@ pub fn generate_record(db: &BindingsGenerator, record: Rc<Record>) -> Result<Api
     let ir = db.ir();
     let crate_root_path = ir.crate_root_path_tokens();
     let ident = make_rs_ident(record.rs_name.identifier.as_ref());
-    let namespace_qualifier = ir.namespace_qualifier(&record).format_for_rs();
+    let namespace_qualifier = db.namespace_qualifier(&record).format_for_rs();
     let qualified_ident = {
         quote! { #crate_root_path:: #namespace_qualifier #ident }
     };
@@ -564,7 +563,7 @@ pub fn generate_record(db: &BindingsGenerator, record: Rc<Record>) -> Result<Api
 
     api_snippets.cc_details.push(cc_struct_layout_assertion(db, &record)?);
 
-    let fully_qualified_cc_name = cpp_tagless_type_name_for_record(&record, ir)?.to_string();
+    let fully_qualified_cc_name = cpp_tagless_type_name_for_record(&record, db)?.to_string();
 
     let mut items = vec![];
     let mut nested_items = vec![];
@@ -586,7 +585,7 @@ pub fn generate_record(db: &BindingsGenerator, record: Rc<Record>) -> Result<Api
     )
     .iter()
     .filter_map(|unambiguous_base_class_member_function| -> Option<ApiSnippets> {
-        let item = ir.find_untyped_decl(unambiguous_base_class_member_function.id);
+        let item = db.find_untyped_decl(unambiguous_base_class_member_function.id);
         let _scope = db.error_scope(item.id());
         let Item::Func(ir_func) = item else { panic!("Unexpected item type: {:?}", item) };
         let generated_func =
@@ -654,7 +653,7 @@ pub fn generate_record(db: &BindingsGenerator, record: Rc<Record>) -> Result<Api
         });
         api_snippets.cc_details.push(ThunkImpl::Fmt {
             fmt_fn_name: fmt_fn_name.clone(),
-            param_type: cpp_type_name_for_record(&record, ir)?,
+            param_type: cpp_type_name_for_record(&record, db)?,
         });
         Some(DisplayImpl { type_name: ident.clone(), fmt_fn_name })
     } else {
@@ -797,8 +796,8 @@ pub fn child_items<'a, 'db>(
     record: &'a Record,
     db: &'a BindingsGenerator<'db>,
 ) -> impl Iterator<Item = ChildItem<'db>> + use<'a, 'db> {
-    record.child_item_ids.iter().map(|&child_item_id| {
-        let item = db.ir().find_untyped_decl(child_item_id);
+    record.child_item_ids.iter().map(move |&child_item_id| {
+        let item = db.find_untyped_decl(child_item_id);
         let is_nested = item.place_in_nested_module_if_nested_in_record()
             && db.has_bindings(item.clone()).is_ok();
         ChildItem { is_nested, item }
@@ -841,7 +840,7 @@ pub fn generate_derives(record: &Record) -> DeriveAttr {
 }
 
 fn cc_struct_layout_assertion(db: &BindingsGenerator, record: &Record) -> Result<ThunkImpl> {
-    let namespace_qualifier = db.ir().namespace_qualifier(record).format_for_cc()?;
+    let namespace_qualifier = db.namespace_qualifier(record).format_for_cc()?;
     let fields_and_expected_offsets: Vec<(TokenStream, usize)> = record
         .fields
         .iter()
@@ -951,7 +950,7 @@ fn cc_struct_upcast_impl(
     let mut upcast_impls = vec![];
     let derived_name = db.rs_type_kind(record.as_ref().into())?.to_token_stream(db);
     for base in &record.unambiguous_public_bases {
-        let base_record: &Rc<Record> = ir
+        let base_record: &Rc<Record> = db
             .find_decl(base.base_record_id)
             .with_context(|| format!("Can't find a base record of {:?}", record))?;
         let Ok(base_type) = db.rs_type_kind(base_record.as_ref().into()) else {
@@ -980,8 +979,8 @@ fn cc_struct_upcast_impl(
                 base = base_record.mangled_cc_name,
                 odr_suffix = record.owning_target.convert_to_cc_identifier(),
             ));
-            let base_cc_name = cpp_type_name_for_record(base_record.as_ref(), ir)?;
-            let derived_cc_name = cpp_type_name_for_record(record.as_ref(), ir)?;
+            let base_cc_name = cpp_type_name_for_record(base_record.as_ref(), db)?;
+            let derived_cc_name = cpp_type_name_for_record(record.as_ref(), db)?;
 
             thunks.push(Thunk::Upcast {
                 cast_fn_name: cast_fn_name.clone(),
@@ -1033,7 +1032,7 @@ fn cc_struct_operator_delete_impl(
         return_type_fragment: None,
     };
 
-    let cc_record_name = cpp_type_name_for_record(record.as_ref(), ir)?;
+    let cc_record_name = cpp_type_name_for_record(record.as_ref(), db)?;
     let thunk_impl = ThunkImpl::Function {
         conversion_externs: quote! {},
         return_type_name: quote! { void },

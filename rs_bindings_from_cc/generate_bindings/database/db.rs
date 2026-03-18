@@ -237,12 +237,11 @@ impl<'db> BindingsGenerator<'db> {
     /// `owning_target()`. This may be `Some` for class template specializations and their member
     /// functions and is `None` otherwise.
     pub fn defining_target(&self, item_id: ir::ItemId) -> Option<ir::BazelLabel> {
-        let ir = self.ir();
-        let item = ir.find_untyped_decl(item_id);
+        let item = self.find_untyped_decl(item_id);
         match item {
             ir::Item::Func(f) => {
                 if let Some(parent_id) = f.enclosing_item_id
-                    && let Ok(record) = ir.find_decl::<std::rc::Rc<ir::Record>>(parent_id)
+                    && let Ok(record) = self.find_decl::<std::rc::Rc<ir::Record>>(parent_id)
                 {
                     return self.defining_target(record.id);
                 }
@@ -260,14 +259,13 @@ impl<'db> BindingsGenerator<'db> {
     ///
     /// For example, `void Foo();` should have name `Foo`.
     pub fn debug_name(&self, item_id: ir::ItemId) -> std::rc::Rc<str> {
-        let ir = self.ir();
-        let item = ir.find_untyped_decl(item_id);
+        let item = self.find_untyped_decl(item_id);
         let (id, name) = match item {
             ir::Item::Func(f) => {
-                let mut name = ir.namespace_qualifier_from_id(f.id).format_for_cc_debug();
+                let mut name = self.namespace_qualifier_from_id(f.id).format_for_cc_debug();
                 let record_name = || -> Option<std::rc::Rc<str>> {
                     if let Some(parent_id) = f.enclosing_item_id {
-                        match ir.find_untyped_decl(parent_id) {
+                        match self.find_untyped_decl(parent_id) {
                             ir::Item::ExistingRustType(existing_rust_type) => {
                                 Some(existing_rust_type.cc_name.clone())
                             }
@@ -322,7 +320,7 @@ impl<'db> BindingsGenerator<'db> {
             ir::Item::GlobalVar(g) => (g.id, g.cc_name.identifier.clone()),
             ir::Item::TypeAlias(t) => (t.id, t.cc_name.identifier.clone()),
         };
-        let qualifier = ir.namespace_qualifier_from_id(id).format_for_cc_debug();
+        let qualifier = self.namespace_qualifier_from_id(id).format_for_cc_debug();
         return format! {"{qualifier}{name}"}.into();
     }
 
@@ -374,7 +372,7 @@ impl<'db> BindingsGenerator<'db> {
 
     pub fn error_item_name(&self, item_id: ir::ItemId) -> error_report::ItemName {
         let name = self.debug_name(item_id);
-        let item = self.ir().find_untyped_decl(item_id);
+        let item = self.find_untyped_decl(item_id);
         error_report::ItemName {
             name,
             id: item.id().as_u64(),
@@ -386,7 +384,7 @@ impl<'db> BindingsGenerator<'db> {
     }
 
     pub fn error_scope<'a>(&'a self, item_id: ir::ItemId) -> Option<error_report::ItemScope<'a>> {
-        let item = self.ir().find_untyped_decl(item_id);
+        let item = self.find_untyped_decl(item_id);
         if matches!(item, ir::Item::Comment(_) | ir::Item::UseMod(_)) {
             None
         } else {
@@ -396,5 +394,92 @@ impl<'db> BindingsGenerator<'db> {
 
     pub fn assert_in_error_scope(&self, item_id: ir::ItemId) {
         self.errors().assert_in_item(self.error_item_name(item_id));
+    }
+
+    pub fn item_for_type<T>(&self, ty: &T) -> arc_anyhow::Result<&'db ir::Item>
+    where
+        T: ir::TypeWithDeclId + std::fmt::Debug,
+    {
+        if let Some(decl_id) = ty.decl_id() {
+            Ok(self.find_untyped_decl(decl_id))
+        } else {
+            arc_anyhow::bail!("Type {:?} does not have an associated item.", ty)
+        }
+    }
+
+    #[track_caller]
+    pub fn find_decl<T>(&self, decl_id: ir::ItemId) -> arc_anyhow::Result<&'db T>
+    where
+        &'db T: TryFrom<&'db ir::Item>,
+    {
+        self.find_untyped_decl(decl_id).try_into().map_err(|_| {
+            arc_anyhow::anyhow!(
+                "DeclId {:?} doesn't refer to a {}",
+                decl_id,
+                std::any::type_name::<T>()
+            )
+        })
+    }
+
+    #[track_caller]
+    pub fn find_untyped_decl(&self, decl_id: ir::ItemId) -> &'db ir::Item {
+        let Some(idx) = self.ir().item_id_to_item_idx().get(&decl_id) else {
+            panic!("Couldn't find decl_id {:?} in the IR:\n{:#?}", decl_id, self.ir().flat_ir())
+        };
+        let Some(item) = self.ir().flat_ir().items.get(*idx) else {
+            panic!("Couldn't find an item at idx {} in IR:\n{:#?}", idx, self.ir().flat_ir())
+        };
+        item
+    }
+
+    pub fn namespace_qualifier(
+        &self,
+        item: &impl ir::GenericItem,
+    ) -> code_gen_utils::NamespaceQualifier {
+        self.namespace_qualifier_from_id(item.id())
+    }
+
+    #[track_caller]
+    pub fn namespace_qualifier_from_id(
+        &self,
+        item_id: ir::ItemId,
+    ) -> code_gen_utils::NamespaceQualifier {
+        let mut namespaces = vec![];
+        let mut nested_records = vec![];
+        let mut enclosing_item_id = self.find_untyped_decl(item_id).enclosing_item_id();
+        while let Some(parent_id) = enclosing_item_id {
+            match self.find_untyped_decl(parent_id) {
+                ir::Item::Namespace(ns) => {
+                    namespaces.push(ns.rs_name.identifier.clone());
+                    enclosing_item_id = ns.enclosing_item_id;
+                }
+                ir::Item::Record(parent_record) => {
+                    assert!(
+                        namespaces.is_empty(),
+                        "Record was listed as the enclosing item for a namespace, this is a bug."
+                    );
+                    nested_records.push((
+                        parent_record.rs_name.identifier.clone(),
+                        parent_record.cc_name.identifier.clone(),
+                    ));
+                    enclosing_item_id = parent_record.enclosing_item_id;
+                }
+                ir::Item::ExistingRustType(rust_type) => {
+                    assert!(
+                        namespaces.is_empty(),
+                        "An existing rust type was listed as the enclosing item for a namespace, this is a bug."
+                    );
+                    nested_records.push((rust_type.rs_name.clone(), rust_type.cc_name.clone()));
+                    // The cc_name and rs_name are fully qualified already.
+                    enclosing_item_id = None;
+                }
+                item => {
+                    panic!("Expected namespace or parent record, found enclosing item: {item:#?}");
+                }
+            }
+        }
+        namespaces.reverse();
+        nested_records.reverse();
+        code_gen_utils::NamespaceQualifier { namespaces, nested_records }
     }
 }
