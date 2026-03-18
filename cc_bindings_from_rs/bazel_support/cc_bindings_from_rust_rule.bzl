@@ -594,7 +594,7 @@ cc_bindings_from_rust_aspect = aspect(
 
 def _cc_bindings_from_rust_rule_impl(ctx):
     crate = ctx.attr.crate
-    return [
+    providers = [
         crate[CcBindingsFromRustInfo].cc_info,
         # If we try to generate rust bindings of c++ bindings of this rust crate, we get back
         # the original rust crate again.
@@ -628,6 +628,9 @@ def _cc_bindings_from_rust_rule_impl(ctx):
             namespaces = None,
         ),
     ]
+    if OutputGroupInfo in crate:
+        providers.append(DefaultInfo(files = crate[OutputGroupInfo].out))
+    return providers
 
 cc_bindings_from_rust = rule(
     implementation = _cc_bindings_from_rust_rule_impl,
