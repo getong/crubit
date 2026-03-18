@@ -900,7 +900,7 @@ std::optional<IR::Item> Importer::ImportDecl(clang::Decl* decl) {
   }
 
   for (auto& importer : decl_importers_) {
-    std::optional<IR::Item> result = importer->ImportDecl(decl);
+    std::optional<IR::Item> result = importer->ImportDecl(decl, *must_bind);
     if (result.has_value()) {
       if (*must_bind) {
         SetMustBindItem(*result);

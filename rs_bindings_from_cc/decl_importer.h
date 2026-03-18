@@ -15,6 +15,7 @@
 #include "absl/container/flat_hash_set.h"
 #include "absl/log/check.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "lifetime_annotations/lifetime_annotations.h"
 #include "lifetime_annotations/type_lifetimes.h"
@@ -189,6 +190,13 @@ class ImportContext {
   // `[[gsl::Pointer]]` as unsafe.
   virtual bool IsUnsafeViewEnabledForTarget(const BazelLabel& label) const = 0;
 
+  virtual bool IsFeatureEnabledForTarget(const BazelLabel& label,
+                                         absl::string_view feature) const = 0;
+
+  bool IsFeatureEnabledForCurrentTarget(absl::string_view feature) {
+    return IsFeatureEnabledForTarget(invocation_.target_, feature);
+  }
+
   // Returns whether the given `decl`'s type has a detectable formatter.
   //
   // Either finds the `CRUBIT_OVERRIDE_DISPLAY` annotation or attempts to infer
@@ -289,7 +297,7 @@ class DeclImporter {
   // If it can't be imported, other DeclImporters may be attempted.
   // To indicate that an item can't be imported, and no other importers should
   // be attempted, return UnsupportedItem.
-  virtual std::optional<IR::Item> ImportDecl(clang::Decl*) = 0;
+  virtual std::optional<IR::Item> ImportDecl(clang::Decl*, bool must_bind) = 0;
 
  protected:
   ImportContext& ictx_;
@@ -303,12 +311,18 @@ class DeclImporterBase : public DeclImporter {
   explicit DeclImporterBase(ImportContext& context) : DeclImporter(context) {}
 
  protected:
-  std::optional<IR::Item> ImportDecl(clang::Decl* decl) override {
+  std::optional<IR::Item> ImportDecl(clang::Decl* decl,
+                                     bool must_bind) override {
     auto* typed_decl = clang::dyn_cast<D>(decl);
     if (typed_decl == nullptr) return std::nullopt;
+    must_bind_ = must_bind;
     return Import(typed_decl);
   }
   virtual std::optional<IR::Item> Import(D*) = 0;
+
+  // A property of the current decl being imported.
+  // This is used to avoid re-parsing the annotation.
+  bool must_bind_ = false;
 };
 
 }  // namespace crubit

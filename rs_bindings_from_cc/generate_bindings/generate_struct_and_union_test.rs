@@ -1733,6 +1733,11 @@ fn test_forward_declared_class_template_specialization_symbol() -> Result<()> {
     Ok(())
 }
 
+fn enable_supported(ir: &mut ir::IR) {
+    *ir.target_crubit_features_mut(&ir.current_target().clone()) =
+        crubit_feature::CrubitFeature::Supported | crubit_feature::CrubitFeature::Types;
+}
+
 /// Unsupported fields on supported structs are replaced with opaque blobs.
 ///
 /// This is hard to test any other way than token comparison!
@@ -1755,8 +1760,7 @@ fn test_supported_suppressed_field_types() -> Result<()> {
     
     "#,
     )?;
-    *ir.target_crubit_features_mut(&ir.current_target().clone()) =
-        crubit_feature::CrubitFeature::Supported.into();
+    enable_supported(&mut ir);
     let BindingsTokens { rs_api, .. } = generate_bindings_tokens_for_test(ir)?;
     assert_rs_matches!(
         rs_api,
@@ -1780,8 +1784,7 @@ fn test_supported_nontrivial_field() -> Result<()> {
         struct [[clang::trivial_abi]] Outer {Inner inner_field; Inner* inner_ptr_field;};
         "#,
     )?;
-    *ir.target_crubit_features_mut(&ir.current_target().clone()) =
-        crubit_feature::CrubitFeature::Supported.into();
+    enable_supported(&mut ir);
     let BindingsTokens { rs_api, .. } = generate_bindings_tokens_for_test(ir)?;
     // Note: inner is a supported type, so it isn't being replaced by a blob because
     // it's unsupporter or anything.
@@ -1808,8 +1811,7 @@ fn test_supported_no_unique_address_field() -> Result<()> {
         };
     "#,
     )?;
-    *ir.target_crubit_features_mut(&ir.current_target().clone()) =
-        crubit_feature::CrubitFeature::Supported.into();
+    enable_supported(&mut ir);
     let BindingsTokens { rs_api, .. } = generate_bindings_tokens_for_test(ir)?;
     assert_rs_matches!(
         rs_api,
@@ -1835,8 +1837,7 @@ fn test_nested_type_definitions() -> Result<()> {
                 SomeStruct::Present* AlsoPresent();
             "#
         ))?;
-        *ir.target_crubit_features_mut(&ir.current_target().clone()) =
-            crubit_feature::CrubitFeature::Supported.into();
+        enable_supported(&mut ir);
         let BindingsTokens { rs_api, .. } = generate_bindings_tokens_for_test(ir)?;
         assert_rs_matches!(rs_api, quote! { Present });
         assert_rs_matches!(rs_api, quote! { AlsoPresent });

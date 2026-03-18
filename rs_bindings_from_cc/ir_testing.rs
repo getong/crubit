@@ -1,4 +1,4 @@
-// Part of the Crubit project, under the Apache License v2.0 with LLVM
+// // Part of the Crubit project, under the Apache License v2.0 with LLVM
 // Exceptions. See /LICENSE for license information.
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 
@@ -63,6 +63,7 @@ static TESTING_FEATURES: LazyLock<flagset::FlagSet<crubit_feature::CrubitFeature
     LazyLock::new(|| {
         crubit_feature::CrubitFeature::Experimental
             | crubit_feature::CrubitFeature::Wrapper
+            | crubit_feature::CrubitFeature::Types
             | crubit_feature::CrubitFeature::Supported
     });
 
@@ -199,41 +200,37 @@ pub fn retrieve_record<'a>(ir: &'a IR, cc_name: &str) -> &'a Record {
 mod tests {
     use super::*;
     use arc_anyhow::Result;
-    use googletest::prelude::*;
+    use crubit_feature::CrubitFeature;
+    use googletest::{expect_eq, gtest};
     use ir::ItemId;
-    use ir_matchers::assert_ir_matches;
     use multiplatform_testing::Platform;
-    use quote::quote;
 
     #[gtest]
     fn test_features_ir_from_cc() -> Result<()> {
-        assert_ir_matches!(
-            ir_from_cc(multiplatform_testing::Platform::X86Linux, "")?,
-            quote! {
-                crubit_features: map! {
-                    ...
-                    BazelLabel(#TESTING_TARGET): SerializedCrubitFeatures(FlagSet(Supported|Wrapper|Experimental))
-                    ...
-                }
-            }
+        let ir = ir_from_cc(multiplatform_testing::Platform::X86Linux, "")?;
+        let enabled_features = ir.target_crubit_features(&ir::BazelLabel(TESTING_TARGET.into()));
+        expect_eq!(
+            enabled_features,
+            CrubitFeature::Experimental
+                | CrubitFeature::Wrapper
+                | CrubitFeature::Types
+                | CrubitFeature::Supported
         );
         Ok(())
     }
     #[gtest]
     fn test_features_ir_from_items() -> Result<()> {
-        assert_ir_matches!(
-            make_ir_from_items([]),
-            quote! {
-                crubit_features: map! {
-                    ...
-                    BazelLabel(#TESTING_TARGET): SerializedCrubitFeatures(FlagSet(Supported|Wrapper|Experimental))
-                    ...
-                }
-            }
+        let ir = make_ir_from_items([]);
+        let enabled_features = ir.target_crubit_features(&ir::BazelLabel(TESTING_TARGET.into()));
+        expect_eq!(
+            enabled_features,
+            CrubitFeature::Experimental
+                | CrubitFeature::Wrapper
+                | CrubitFeature::Types
+                | CrubitFeature::Supported
         );
         Ok(())
     }
-
     #[gtest]
     #[should_panic(expected = "Duplicate decl_id found in")]
     fn test_duplicate_decl_ids_err() {

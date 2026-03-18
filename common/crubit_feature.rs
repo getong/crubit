@@ -18,6 +18,10 @@ flagset::flags! {
 
         Wrapper,
 
+        /// Enable support for types, but not necessarily functions.
+        /// This is automatically enabled by `Supported`.
+        Types,
+
         /// Experimental is never *set* without also setting Supported, but we allow it to be
         /// *required* without also requiring Supported, so that error messages can be more direct.
         Experimental,
@@ -56,6 +60,7 @@ impl CrubitFeature {
         match self {
             Self::Supported => "supported",
             Self::Wrapper => "wrapper",
+            Self::Types => "types",
             Self::Experimental => "experimental",
             Self::AssumeLifetimes => "assume_lifetimes",
             Self::AssumeThisLifetime => "assume_this_lifetimes",
@@ -74,6 +79,7 @@ impl CrubitFeature {
         match self {
             Self::Supported => "//features:supported",
             Self::Wrapper => "//features:wrapper",
+            Self::Types => "//features:types",
             Self::Experimental => "//features:experimental",
             Self::AssumeLifetimes => "//features:assume_lifetimes",
             Self::AssumeThisLifetime => "//features:assume_this_lifetimes",
@@ -93,8 +99,10 @@ pub fn named_features(name: &[u8]) -> Option<flagset::FlagSet<CrubitFeature>> {
     let features = match name {
         // LINT.IfChange
         b"all" => flagset::FlagSet::<CrubitFeature>::full() - CrubitFeature::NoAssumeLifetimes,
-        b"supported" => CrubitFeature::Supported.into(),
+        // `supported` automatically implies `types`.
+        b"supported" => CrubitFeature::Supported | CrubitFeature::Types,
         b"wrapper" => CrubitFeature::Wrapper.into(),
+        b"types" => CrubitFeature::Types.into(),
         b"experimental" => CrubitFeature::Experimental.into(),
         b"assume_lifetimes" => CrubitFeature::AssumeLifetimes.into(),
         b"assume_this_lifetimes" => CrubitFeature::AssumeThisLifetime.into(),
@@ -202,7 +210,7 @@ mod tests {
     #[gtest]
     fn test_serialized_crubit_feature() {
         let SerializedCrubitFeature(features) = serde_json::from_str("\"supported\"").unwrap();
-        assert_eq!(features, CrubitFeature::Supported);
+        assert_eq!(features, CrubitFeature::Supported | CrubitFeature::Types);
     }
 
     #[gtest]
@@ -212,6 +220,7 @@ mod tests {
             features,
             CrubitFeature::Supported
                 | CrubitFeature::Wrapper
+                | CrubitFeature::Types
                 | CrubitFeature::Experimental
                 | CrubitFeature::AssumeLifetimes
                 | CrubitFeature::AssumeThisLifetime
@@ -232,7 +241,10 @@ mod tests {
     fn test_serialized_crubit_features() {
         let SerializedCrubitFeatures(features) =
             serde_json::from_str("[\"supported\", \"experimental\"]").unwrap();
-        assert_eq!(features, CrubitFeature::Supported | CrubitFeature::Experimental);
+        assert_eq!(
+            features,
+            CrubitFeature::Supported | CrubitFeature::Types | CrubitFeature::Experimental
+        );
     }
 
     #[gtest]
@@ -242,6 +254,7 @@ mod tests {
             features,
             CrubitFeature::Supported
                 | CrubitFeature::Wrapper
+                | CrubitFeature::Types
                 | CrubitFeature::Experimental
                 | CrubitFeature::AssumeLifetimes
                 | CrubitFeature::AssumeThisLifetime
@@ -260,6 +273,7 @@ mod tests {
             features,
             CrubitFeature::Supported
                 | CrubitFeature::Wrapper
+                | CrubitFeature::Types
                 | CrubitFeature::Experimental
                 | CrubitFeature::AssumeLifetimes
                 | CrubitFeature::AssumeThisLifetime
@@ -280,6 +294,7 @@ mod tests {
             features,
             CrubitFeature::Supported
                 | CrubitFeature::Wrapper
+                | CrubitFeature::Types
                 | CrubitFeature::Experimental
                 | CrubitFeature::AssumeThisLifetime
                 | CrubitFeature::Fmt

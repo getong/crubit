@@ -267,6 +267,7 @@ cc_library(
         "@abseil-cpp//absl/container:flat_hash_set",
         "@abseil-cpp//absl/log:check",
         "@abseil-cpp//absl/status:statusor",
+        "@abseil-cpp//absl/strings:string_view",
         "@abseil-cpp//absl/types:span",
         "@llvm-project//clang:ast",
         "@llvm-project//clang:basic",
