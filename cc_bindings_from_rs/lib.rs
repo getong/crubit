@@ -266,6 +266,7 @@ pub fn construct_config(input: config::Input, opts: config::Options) -> rustc_in
 }
 
 #[rustversion::since(2026-02-08)]
+#[rustversion::before(2026-03-16)]
 pub fn construct_config(input: config::Input, opts: config::Options) -> rustc_interface::Config {
     rustc_interface::Config {
         // Command line options
@@ -294,6 +295,40 @@ pub fn construct_config(input: config::Input, opts: config::Options) -> rustc_in
         make_codegen_backend: None,
         ice_file: None,
         hash_untracked_state: None,
+        using_internal_features: &rustc_driver::USING_INTERNAL_FEATURES,
+        extra_symbols: vec![],
+    }
+}
+
+#[rustversion::since(2026-03-16)]
+pub fn construct_config(input: config::Input, opts: config::Options) -> rustc_interface::Config {
+    rustc_interface::Config {
+        // Command line options
+        opts,
+        // cfg! configuration in addition to the default ones
+        crate_cfg: Vec::new(),       // FxHashSet<(String, Option<String>)>
+        crate_check_cfg: Vec::new(), // CheckCfg
+        input,
+        output_dir: None,              // Option<PathBuf>
+        output_file: None,             // Option<PathBuf>
+        file_loader: None,             // Option<Box<dyn FileLoader + Send + Sync>>
+        lint_caps: Default::default(), // FxHashMap<lint::LintId, lint::Level>
+        // This is a callback from the driver that is called when [`ParseSess`] is created.
+        psess_created: None, //Option<Box<dyn FnOnce(&mut ParseSess) + Send>>
+        // This is a callback from the driver that is called when we're registering lints;
+        // it is called during plugin registration when we have the LintStore in a non-shared state.
+        //
+        // Note that if you find a Some here you probably want to call that function in the new
+        // function being registered.
+        register_lints: None, // Option<Box<dyn Fn(&Session, &mut LintStore) + Send + Sync>>
+        // This is a callback from the driver that is called just after we have populated
+        // the list of queries.
+        //
+        // The second parameter is local providers and the third parameter is external providers.
+        override_queries: None, // Option<fn(&Session, &mut ty::query::Providers<'_>, &mut ty::query::Providers<'_>)>
+        make_codegen_backend: None,
+        ice_file: None,
+        track_state: None,
         using_internal_features: &rustc_driver::USING_INTERNAL_FEATURES,
         extra_symbols: vec![],
     }
