@@ -539,6 +539,7 @@ private_common_attrs = {
             "//support:bridge_cpp",
             "//support/public:traits",
             "//support/public:option",
+            "//support/public:result",
         ],
     ),
     "_process_wrapper": attr.label(
