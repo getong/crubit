@@ -158,7 +158,7 @@ pub fn format_ty_for_cc<'tcx>(
                 bail!("The never type `!` is only supported as a return type (b/254507801)");
             }
         },
-        ty::TyKind::Tuple(ref types) => {
+        ty::TyKind::Tuple(types) => {
             if types.is_empty() && matches!(location, TypeLocation::FnReturn { .. }) {
                 keyword(quote! { void })
             } else if !location.is_bridgeable() {
@@ -168,7 +168,7 @@ pub fn format_ty_for_cc<'tcx>(
                 prereqs.includes.insert(CcInclude::tuple());
 
                 let mut cc_types = Vec::with_capacity(types.len());
-                for element_type in *types {
+                for element_type in types {
                     cc_types.push(
                         db.format_ty_for_cc(element_type, TypeLocation::NestedBridgeable)?
                             .into_tokens(&mut prereqs),
@@ -273,7 +273,7 @@ pub fn format_ty_for_cc<'tcx>(
             bail!("C++ doesn't have a standard equivalent of `{ty}` (b/254094650)");
         }
 
-        ty::TyKind::Adt(adt, ref substs) => {
+        ty::TyKind::Adt(adt, substs) => {
             let def_id = adt.did();
             let mut prereqs = CcPrerequisites::default();
 
@@ -305,7 +305,7 @@ pub fn format_ty_for_cc<'tcx>(
                         let mut tokens = composable.cpp_type.to_token_stream();
                         if !substs.is_empty() {
                             let mut generic_types_tokens = Vec::with_capacity(substs.len());
-                            for subst in *substs {
+                            for subst in substs {
                                 let snippet = format_ty_for_cc(
                                     db,
                                     subst.expect_ty(),

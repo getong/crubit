@@ -292,7 +292,8 @@ pub(crate) fn generate_associated_item<'tcx>(
     }
     crate::error_scope!(db, def_id);
     let result = match assoc_item.kind {
-        ty::AssocKind::Fn { .. } => db.generate_function(def_id).and_then(|binding| {
+        ty::AssocKind::Fn { .. } => db.generate_function(def_id).inspect(|_binding| {
+            // If `generate_function` succeeds, record the method in `member_function_names`.
             let unqualified_name = db
                 .symbol_unqualified_name(def_id)
                 .expect("Associated item should have an unqualified name: {def_id:?}");
@@ -302,7 +303,6 @@ pub(crate) fn generate_associated_item<'tcx>(
                 was_inserted, // Bindings for Rust/user-named items are given priority.
                 "Unexpected (user-named 'members' are handled first) naming conflict: {cpp_name}",
             );
-            Ok(binding)
         }),
         ty::AssocKind::Const { .. } => generate_const(db, def_id),
         // TODO: b/405132277 - Rust does not support inherent associated types, but should support
@@ -1365,11 +1365,12 @@ pub(crate) fn generate_fields<'tcx>(
                             (field.offset, field_size, field.index)
                         });
                     }
-                    FieldsShape::Union(num_fields) => {
+                    FieldsShape::Union { .. } => {
                         // Compute the offset of each field
-                        for index in 0..num_fields.get() {
-                            variants_fields[variant_index][index].offset =
-                                layout.fields().offset(index).bytes();
+                        for (field_index, field) in
+                            variants_fields[variant_index].iter_mut().enumerate()
+                        {
+                            field.offset = layout.fields().offset(field_index).bytes();
                         }
                     }
                     unexpected => panic!("Unexpected FieldsShape: {unexpected:?}"),

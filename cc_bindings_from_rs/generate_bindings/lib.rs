@@ -781,7 +781,7 @@ fn generate_using<'tcx>(
                 format_cc_ident(db, using_name.as_str()).context("Error formatting using name")?;
 
             prereqs.depend_on_def(db, def_id)?;
-            let tokens = if using_name_ident.to_string() == main_api_fn_name.to_string() {
+            let tokens = if using_name_ident == main_api_fn_name {
                 quote! { using #formatted_fully_qualified_fn_name; }
             } else {
                 quote! { constexpr auto #using_name_ident = #formatted_fully_qualified_fn_name; }
@@ -2021,7 +2021,7 @@ fn generate_crate(db: &BindingsGenerator) -> Result<BindingsTokens> {
                     };
 
             fwd_decls.extend(inner_fwd_decls.difference(&already_declared).copied());
-            already_declared.extend(inner_fwd_decls.into_iter());
+            already_declared.extend(inner_fwd_decls);
             // We don't need to do this for specializations.
             if let Node::Def(def_id) = node {
                 already_declared.insert(def_id);
