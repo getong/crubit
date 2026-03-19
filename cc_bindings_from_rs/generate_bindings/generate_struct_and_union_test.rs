@@ -89,7 +89,7 @@ fn test_format_bridged_type_in_generic_types() {
         let err = result.unwrap_err();
         assert_eq!(
             err,
-            "Error handling parameter #0 of type `std::option::Option<std::boxed::Box<std::result::Result<RustType, ()>>>`: Result as a bridge type is not yet supported"
+            "Error handling parameter #0 of type `std::option::Option<std::boxed::Box<std::result::Result<RustType, ()>>>`: Failed to construct CrubitAbiType for std::boxed::Box<std::result::Result<RustType, ()>> because it does not have a move ctor or assignment operator."
         );
     });
 }
@@ -402,7 +402,7 @@ fn test_format_item_struct_fields_with_doc_comments() {
                 pub successful_field: i32,
 
                 /// Documentation of `unsupported_field`.
-                pub unsupported_field: Option<[i32; 3]>,
+                pub unsupported_field: std::mem::ManuallyDrop<i64>,
             }
         "#;
     test_format_item(test_src, "SomeStruct", |result| {
@@ -411,7 +411,7 @@ fn test_format_item_struct_fields_with_doc_comments() {
         let comment_for_successful_field = " Documentation of `successful_field`.\n\n\
               Generated from: <crubit_unittests.rs>;l=4";
         let comment_for_unsupported_field = "Field type has been replaced with a blob of bytes: \
-             Unsupported bridge type: [i32; 3_usize]";
+             Generic types are not supported yet (b/259749095)";
         assert_cc_matches!(
             main_api.tokens,
             quote! {
@@ -420,12 +420,13 @@ fn test_format_item_struct_fields_with_doc_comments() {
                     ...
                     private:
                         __COMMENT__ #comment_for_unsupported_field
-                        std::array<unsigned char, 16> unsupported_field;
+                        std::array<unsigned char, 8> unsupported_field;
                     public:
                         union {
                             __COMMENT__ #comment_for_successful_field
                             std::int32_t successful_field;
                         };
+                        ...
                     private:
                         static void __crubit_field_offset_assertions();
                 };
