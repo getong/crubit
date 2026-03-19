@@ -33,4 +33,10 @@ extern "C" void __rust_thunk___ZN20NoDiscardWithMessageC1Ev(
   crubit::construct_at(__this);
 }
 
+static_assert(sizeof(struct NodiscardCtor) == 1);
+static_assert(alignof(struct NodiscardCtor) == 1);
+
+static_assert(sizeof(struct NodiscardCtorWithMessage) == 1);
+static_assert(alignof(struct NodiscardCtorWithMessage) == 1);
+
 #pragma clang diagnostic pop

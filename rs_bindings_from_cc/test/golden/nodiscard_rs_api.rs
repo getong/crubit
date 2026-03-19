@@ -63,6 +63,50 @@ impl Default for NoDiscardWithMessage {
     }
 }
 
+// error: enum `NoDiscardEnum` could not be bound
+//   crubit.rs/errors/unknown_attribute: unknown attribute(s): nodiscard
+
+// error: enum `NoDiscardEnumWithMessage` could not be bound
+//   crubit.rs/errors/unknown_attribute: unknown attribute(s): nodiscard
+
+// error: function `crubit_nodiscard` could not be bound
+//   [[nodiscard]] attribute
+
+// error: function `crubit_nodiscard_message` could not be bound
+//   [[nodiscard]] attribute
+
+#[derive(Clone, Copy, ::ctor::MoveAndAssignViaCopy)]
+#[repr(C)]
+///CRUBIT_ANNOTATE: cpp_type=NodiscardCtor
+pub struct NodiscardCtor {
+    __non_field_data: [::core::mem::MaybeUninit<u8>; 1],
+}
+impl !Send for NodiscardCtor {}
+impl !Sync for NodiscardCtor {}
+unsafe impl ::cxx::ExternType for NodiscardCtor {
+    type Id = ::cxx::type_id!("NodiscardCtor");
+    type Kind = ::cxx::kind::Trivial;
+}
+
+// error: constructor `NodiscardCtor::NodiscardCtor` could not be bound
+//   [[nodiscard]] attribute
+
+#[derive(Clone, Copy, ::ctor::MoveAndAssignViaCopy)]
+#[repr(C)]
+///CRUBIT_ANNOTATE: cpp_type=NodiscardCtorWithMessage
+pub struct NodiscardCtorWithMessage {
+    __non_field_data: [::core::mem::MaybeUninit<u8>; 1],
+}
+impl !Send for NodiscardCtorWithMessage {}
+impl !Sync for NodiscardCtorWithMessage {}
+unsafe impl ::cxx::ExternType for NodiscardCtorWithMessage {
+    type Id = ::cxx::type_id!("NodiscardCtorWithMessage");
+    type Kind = ::cxx::kind::Trivial;
+}
+
+// error: constructor `NodiscardCtorWithMessage::NodiscardCtorWithMessage` could not be bound
+//   [[nodiscard]] attribute
+
 mod detail {
     #[allow(unused_imports)]
     use super::*;
@@ -84,4 +128,14 @@ const _: () = {
     assert!(::core::mem::align_of::<crate::NoDiscardWithMessage>() == 1);
     static_assertions::assert_impl_all!(crate::NoDiscardWithMessage: Copy,Clone);
     static_assertions::assert_not_impl_any!(crate::NoDiscardWithMessage: Drop);
+
+    assert!(::core::mem::size_of::<crate::NodiscardCtor>() == 1);
+    assert!(::core::mem::align_of::<crate::NodiscardCtor>() == 1);
+    static_assertions::assert_impl_all!(crate::NodiscardCtor: Copy,Clone);
+    static_assertions::assert_not_impl_any!(crate::NodiscardCtor: Drop);
+
+    assert!(::core::mem::size_of::<crate::NodiscardCtorWithMessage>() == 1);
+    assert!(::core::mem::align_of::<crate::NodiscardCtorWithMessage>() == 1);
+    static_assertions::assert_impl_all!(crate::NodiscardCtorWithMessage: Copy,Clone);
+    static_assertions::assert_not_impl_any!(crate::NodiscardCtorWithMessage: Drop);
 };
