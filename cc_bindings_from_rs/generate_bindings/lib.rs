@@ -935,7 +935,7 @@ fn generate_trait<'tcx>(
         (quote! { template <#(#template_params),*> }, quote! { #trait_name<#(#template_args),*> })
     };
 
-    let main_api = CcSnippet::with_include(
+    let mut main_api = CcSnippet::with_include(
         quote! {
             __NEWLINE__ #doc_comment
             #template_prefix
@@ -947,6 +947,7 @@ fn generate_trait<'tcx>(
         },
         db.support_header("rs_std/traits.h"),
     );
+    main_api.prereqs.includes.insert(db.support_header("annotations_internal.h"));
     Ok(ApiSnippets { main_api, ..Default::default() })
 }
 
@@ -1673,7 +1674,11 @@ fn generate_trait_impls<'a, 'tcx>(
                 .filter_map(move |(simple_ty, impl_def_ids)| match simple_ty {
                     SimplifiedType::Adt(did) => {
                         // Only bind implementations for supported ADTs.
-                        if db.adt_needs_bindings(*did).is_err() {
+                        let canonical_name = db.symbol_canonical_name(*did)?;
+                        // We explicitly want to allow ADTs that specify cpp_type.
+                        // These are typically C++ types that have generated Rust bindings.
+                        if canonical_name.unqualified.cpp_type.is_none()
+                            && db.adt_needs_bindings(*did).is_err() {
                             return None;
                         }
                         let crate_name = tcx.crate_name(did.krate);
@@ -1682,7 +1687,7 @@ fn generate_trait_impls<'a, 'tcx>(
                         if ["std", "core", "alloc"].contains(&crate_name.as_str()) {
                             return None;
                         }
-                        let adt_cc_name = db.symbol_canonical_name(*did)?.format_for_cc(db).ok()?;
+                        let adt_cc_name = canonical_name.format_for_cc(db).ok()?;
                         Some((adt_cc_name, trait_def_id, impl_def_ids))
                     }
                     // TODO: b/457803426 - Support trait implementations for non-adt types.
