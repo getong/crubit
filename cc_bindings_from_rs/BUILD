@@ -69,6 +69,14 @@ crubit_rust_binary(
     # LINT.IfChange
     rustc_flags = ["-Zallow-features=never_type,rustc_private"],
     # LINT.ThenChange(//docs/overview/unstable_features.md)
+    # This is built by cargo on presubmit, so should not go stale.
+    # It doesn't work in Bazel because a cargo-clap feature we need is not enabled.
+    tags = [
+        "manual",
+        "norapid",
+        "not_run",
+        "notap",
+    ],
     deps = [
         ":cmdline",
         ":cpp_api_from_rust_lib",
