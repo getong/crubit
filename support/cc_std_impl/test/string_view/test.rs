@@ -88,7 +88,7 @@ fn test_ffi_default_string_view_livetype() {
 fn test_ffi_livetype() {
     let rsv = GetHelloWorld();
     let sv = unsafe { rsv.as_live() };
-    let msg = unsafe { sv.to_str() }.unwrap_or("failed");
+    let msg = sv.to_str().unwrap_or("failed");
     assert_eq!(msg, "Hello, world!");
 }
 
@@ -104,7 +104,7 @@ fn test_ffi_identity() {
 fn test_roundtrip_livetype() {
     let original: &'static str = "this is a string";
     let sv: string_view = original.into();
-    assert_eq!(unsafe { sv.to_str() }.unwrap_or("failed"), original);
+    assert_eq!(sv.to_str().unwrap_or("failed"), original);
 }
 
 #[gtest]
@@ -138,13 +138,9 @@ fn exercise_as_static_live() {
     let sv_static: string_view<'static> = unsafe { static_rsv.as_static_live() };
 
     assert_eq!(sv_static.len(), TEST_LITERAL.len(), "Length should match");
-    assert_eq!(
-        unsafe { sv_static.as_bytes() },
-        TEST_LITERAL.as_bytes(),
-        "Byte content should match"
-    );
+    assert_eq!(sv_static.as_bytes(), TEST_LITERAL.as_bytes(), "Byte content should match");
 
-    match unsafe { sv_static.to_str() } {
+    match sv_static.to_str() {
         Ok(s) => {
             assert_eq!(s, TEST_LITERAL, "String content should match");
             let _proof_is_static: &'static str = s; // Confirms 'static lifetime
