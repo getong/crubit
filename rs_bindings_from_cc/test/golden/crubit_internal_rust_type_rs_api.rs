@@ -13,6 +13,17 @@
 #![allow(unused)]
 #![deny(warnings)]
 
+pub mod crubit {
+    pub mod rust_type { // error: class `crubit::rust_type::Args` could not be bound
+                        //   Class templates are not yet supported
+
+        // error: class `crubit::rust_type::Const` could not be bound
+        //   Class templates are not yet supported
+    }
+}
+
+// namespace crubit::rust_type
+
 // Type bindings for MyI8Struct suppressed due to being mapped to an existing Rust type (i8)
 
 // Note that this is potentially visited, even if the original declaration is
@@ -67,12 +78,89 @@ impl Default for ExistingRustTypeFieldTypes {
     }
 }
 
+// error: class `Ptr` could not be bound
+//   Class templates are not yet supported
+
+#[inline(always)]
+pub fn AcceptPtrInt(mut ptr: crate::RustPtr<::ffi_11::c_int>) {
+    unsafe { crate::detail::__rust_thunk___Z12AcceptPtrInt3PtrIiE(&mut ptr) }
+}
+
+// error: class `CppTypeWithTemplateArgs` could not be bound
+//   Class templates are not yet supported
+
+#[inline(always)]
+pub fn AcceptCppTypeWithTemplateArgs(
+    mut cpp_type: crate::RustTypeWithReorderedGenerics<::ffi_11::c_int, f32, true>,
+) {
+    unsafe {
+        crate::detail::__rust_thunk___Z29AcceptCppTypeWithTemplateArgs23CppTypeWithTemplateArgsIifLb1EE(&mut cpp_type)
+    }
+}
+
+// error: class `ConvertPtrs` could not be bound
+//   Class templates are not yet supported
+
+#[inline(always)]
+pub fn AcceptReordered(mut x: crate::RustTypeReordered<f32, ::ffi_11::c_int>) {
+    unsafe { crate::detail::__rust_thunk___Z15AcceptReordered11ConvertPtrsIfiE(&mut x) }
+}
+
+// error: class `WithDefault` could not be bound
+//   Class templates are not yet supported
+
+#[inline(always)]
+pub fn AcceptWithDefault(mut x: crate::RustTypeWithDefault<f32, ::ffi_11::c_int>) {
+    unsafe { crate::detail::__rust_thunk___Z17AcceptWithDefault11WithDefaultIfiE(&mut x) }
+}
+
+// error: class `MyContainer` could not be bound
+//   Class templates are not yet supported
+
+#[inline(always)]
+pub fn AcceptSpecialized(
+    mut a: crate::MyRustContainer<::ffi_11::c_int>,
+    mut b: crate::MyRustContainerVoid,
+) {
+    unsafe {
+        crate::detail::__rust_thunk___Z17AcceptSpecialized11MyContainerIiES_IvE(&mut a, &mut b)
+    }
+}
+
+// Type bindings for Ptr<int> suppressed due to being mapped to an existing Rust type (crate::RustPtr::<::ffi_11::c_int>)
+
+// Type bindings for CppTypeWithTemplateArgs<int, float, true> suppressed due to being mapped to an existing Rust type (crate::RustTypeWithReorderedGenerics::<::ffi_11::c_int,f32,true>)
+
+// Type bindings for ConvertPtrs<float, int> suppressed due to being mapped to an existing Rust type (crate::RustTypeReordered::<f32,::ffi_11::c_int>)
+
+// Type bindings for WithDefault<float> suppressed due to being mapped to an existing Rust type (crate::RustTypeWithDefault::<f32,::ffi_11::c_int>)
+
+// Type bindings for MyContainer<int> suppressed due to being mapped to an existing Rust type (crate::MyRustContainer::<::ffi_11::c_int>)
+
+// Type bindings for MyContainer<void> suppressed due to being mapped to an existing Rust type (crate::MyRustContainerVoid)
+
 mod detail {
     #[allow(unused_imports)]
     use super::*;
     unsafe extern "C" {
         pub(crate) unsafe fn __rust_thunk___ZN26ExistingRustTypeFieldTypesC1Ev(
             __this: *mut ::core::ffi::c_void,
+        );
+        pub(crate) unsafe fn __rust_thunk___Z12AcceptPtrInt3PtrIiE(
+            ptr: &mut crate::RustPtr<::ffi_11::c_int>,
+        );
+        pub(crate) unsafe fn __rust_thunk___Z29AcceptCppTypeWithTemplateArgs23CppTypeWithTemplateArgsIifLb1EE(
+            cpp_type: &mut crate::RustTypeWithReorderedGenerics<::ffi_11::c_int, f32, true>,
+        );
+        pub(crate) unsafe fn __rust_thunk___Z15AcceptReordered11ConvertPtrsIfiE(
+            x: &mut crate::RustTypeReordered<f32, ::ffi_11::c_int>,
+        );
+        pub(crate) unsafe fn __rust_thunk___Z17AcceptWithDefault11WithDefaultIfiE(
+            x: &mut crate::RustTypeWithDefault<f32, ::ffi_11::c_int>,
+        );
+        pub(crate) unsafe fn __rust_thunk___Z17AcceptSpecialized11MyContainerIiES_IvE(
+            a: &mut crate::MyRustContainer<::ffi_11::c_int>,
+            b: &mut crate::MyRustContainerVoid,
         );
     }
 }
@@ -95,4 +183,22 @@ const _: () = {
     assert!(::core::mem::offset_of!(crate::ExistingRustTypeFieldTypes, my_i8_enum) == 2);
     assert!(::core::mem::offset_of!(crate::ExistingRustTypeFieldTypes, my_i8_alias) == 3);
     assert!(::core::mem::offset_of!(crate::ExistingRustTypeFieldTypes, error) == 4);
+    assert!(::core::mem::size_of::<crate::RustPtr::<::ffi_11::c_int>>() == 8);
+    assert!(::core::mem::align_of::<crate::RustPtr::<::ffi_11::c_int>>() == 8);
+    assert!(
+        ::core::mem::size_of::<crate::RustTypeWithReorderedGenerics::<::ffi_11::c_int, f32, true>>(
+        ) == 16
+    );
+    assert!(
+        ::core::mem::align_of::<crate::RustTypeWithReorderedGenerics::<::ffi_11::c_int, f32, true>>(
+        ) == 8
+    );
+    assert!(::core::mem::size_of::<crate::RustTypeReordered::<f32, ::ffi_11::c_int>>() == 1);
+    assert!(::core::mem::align_of::<crate::RustTypeReordered::<f32, ::ffi_11::c_int>>() == 1);
+    assert!(::core::mem::size_of::<crate::RustTypeWithDefault::<f32, ::ffi_11::c_int>>() == 1);
+    assert!(::core::mem::align_of::<crate::RustTypeWithDefault::<f32, ::ffi_11::c_int>>() == 1);
+    assert!(::core::mem::size_of::<crate::MyRustContainer::<::ffi_11::c_int>>() == 1);
+    assert!(::core::mem::align_of::<crate::MyRustContainer::<::ffi_11::c_int>>() == 1);
+    assert!(::core::mem::size_of::<crate::MyRustContainerVoid>() == 1);
+    assert!(::core::mem::align_of::<crate::MyRustContainerVoid>() == 1);
 };

@@ -111,6 +111,9 @@ NON_BUILDABLE_TEST = [
     "bridge_type",
     "callables",
 
+    # The rust type is not defined in the C++ header so it cannot be built.
+    "crubit_internal_rust_type",
+
     # We can't support additional Rust srcs so we can't run the test.
     "composable_bridging",
     "composable_bridging_template_type",

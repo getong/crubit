@@ -510,7 +510,17 @@ pub enum RsTypeKind {
     /// This variant comes from the `CRUBIT_INTERNAL_RUST_TYPE` attribute macro in C++,
     /// which is used on types like `SliceRef`, `StrRef`, and C++ types generated from Rust
     /// types by cc_bindings_from_rs.
-    ExistingRustType(Rc<ExistingRustType>),
+    ExistingRustType {
+        existing_rust_type: Rc<ExistingRustType>,
+        template_args: Rc<[TemplateArg]>,
+    },
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub enum TemplateArg {
+    Type(RsTypeKind),
+    Int(i64),
+    Bool(bool),
 }
 
 /// Information about how the owned function object may be called.
@@ -860,7 +870,7 @@ impl RsTypeKind {
                     existing_rust_type.template_args.len()
                 );
             };
-            let TemplateArg::Type(inner_cc_type) = template_arg else {
+            let ir::TemplateArg::Type(inner_cc_type) = template_arg else {
                 bail!("SliceRef should have a type as its singular template argument");
             };
 
@@ -882,7 +892,25 @@ impl RsTypeKind {
             });
         }
 
-        Ok(RsTypeKind::ExistingRustType(existing_rust_type))
+        let template_args = existing_rust_type
+            .template_args
+            .iter()
+            .map(|template_arg| match template_arg {
+                ir::TemplateArg::Type(type_param) => {
+                    let rs_type_kind = db.rs_type_kind(type_param.clone())?;
+                    ensure!(
+                        !rs_type_kind.is_bridge_type(),
+                        "Type parameter cannot be a bridge type: {}",
+                        rs_type_kind.display(db),
+                    );
+                    Ok(TemplateArg::Type(rs_type_kind))
+                }
+                ir::TemplateArg::Int(i) => Ok(TemplateArg::Int(*i)),
+                ir::TemplateArg::Bool(b) => Ok(TemplateArg::Bool(*b)),
+            })
+            .collect::<Result<Rc<[TemplateArg]>>>()?;
+
+        Ok(RsTypeKind::ExistingRustType { existing_rust_type, template_args })
     }
 
     /// Returns true if the type is known to be `Unpin`, false otherwise.
@@ -1040,7 +1068,7 @@ impl RsTypeKind {
                         require_feature(CrubitFeature::Types, None)
                     }
                 }
-                RsTypeKind::ExistingRustType(_)
+                RsTypeKind::ExistingRustType { .. }
                 | RsTypeKind::Enum { .. }
                 | RsTypeKind::TypeAlias { .. }
                 | RsTypeKind::Primitive { .. } => require_feature(CrubitFeature::Types, None),
@@ -1096,7 +1124,9 @@ impl RsTypeKind {
             RsTypeKind::TypeAlias { .. } => unreachable!(),
             RsTypeKind::Primitive(_) => true,
             RsTypeKind::BridgeType { .. } => false,
-            RsTypeKind::ExistingRustType(existing_rust_type) => existing_rust_type.is_same_abi,
+            RsTypeKind::ExistingRustType { existing_rust_type, .. } => {
+                existing_rust_type.is_same_abi
+            }
         }
     }
 
@@ -1151,7 +1181,7 @@ impl RsTypeKind {
             RsTypeKind::TypeAlias { .. } => unreachable!(),
             RsTypeKind::Primitive(_) => true,
             RsTypeKind::BridgeType { .. } => false,
-            RsTypeKind::ExistingRustType(_) => true,
+            RsTypeKind::ExistingRustType { .. } => true,
         }
     }
 
@@ -1259,7 +1289,7 @@ impl RsTypeKind {
                 }
                 BridgeRsTypeKind::C9Co { .. } => false,
             },
-            RsTypeKind::ExistingRustType(_) => true,
+            RsTypeKind::ExistingRustType { .. } => true,
         }
     }
 
@@ -1453,7 +1483,7 @@ impl RsTypeKind {
                 }
             }
             RsTypeKind::BridgeType { .. } => self.to_token_stream(db),
-            RsTypeKind::ExistingRustType(_) => self.to_token_stream(db),
+            RsTypeKind::ExistingRustType { .. } => self.to_token_stream(db),
             _ => self.to_token_stream(db),
         }
     }
@@ -1750,7 +1780,7 @@ impl RsTypeKind {
 
                         let generic_types_tokens =
                             generic_types.iter().map(|t| t.to_token_stream(db));
-                        quote! { #path < #(#generic_types_tokens),* > }
+                        quote! { #path::<#(#generic_types_tokens),*> }
                     }
                     BridgeRsTypeKind::ProtoMessageBridge { rust_name } => {
                         fully_qualify_type(db, ir::Item::Record(original_type.clone()), rust_name)
@@ -1790,11 +1820,26 @@ impl RsTypeKind {
                     }
                 }
             }
-            RsTypeKind::ExistingRustType(existing_rust_type) => fully_qualify_type(
-                db,
-                ir::Item::ExistingRustType(existing_rust_type.clone()),
-                &existing_rust_type.rs_name,
-            ),
+            RsTypeKind::ExistingRustType { existing_rust_type, template_args } => {
+                let path = fully_qualify_type(
+                    db,
+                    ir::Item::ExistingRustType(existing_rust_type.clone()),
+                    &existing_rust_type.rs_name,
+                );
+
+                // If there are no template args, then we're done.
+                if template_args.is_empty() {
+                    return path;
+                }
+
+                let template_args_tokens = template_args.iter().map(|t| match t {
+                    TemplateArg::Type(rs_type_kind) => rs_type_kind.to_token_stream(db),
+                    TemplateArg::Int(i) => quote! { #i },
+                    TemplateArg::Bool(b) => quote! { #b },
+                });
+
+                quote! { #path::<#(#template_args_tokens),*> }
+            }
         }
     }
 }
@@ -1937,7 +1982,7 @@ impl<'ty> Iterator for RsTypeKindIter<'ty> {
                             self.todo.push(result_type);
                         }
                     },
-                    RsTypeKind::ExistingRustType(_) => {}
+                    RsTypeKind::ExistingRustType { .. } => {}
                 };
                 Some(curr)
             }
@@ -1954,18 +1999,21 @@ mod tests {
     use token_stream_matchers::assert_rs_matches;
 
     fn make_existing_rust_type(name: Rc<str>, is_same_abi: bool) -> RsTypeKind {
-        RsTypeKind::ExistingRustType(Rc::new(ExistingRustType {
-            rs_name: name.clone(),
-            cc_name: "".into(),
-            unique_name: name,
-            template_args: Vec::new(),
-            template_arg_names: Vec::new(),
-            owning_target: BazelLabel("//new/for/testing".into()),
-            size_align: None,
-            is_same_abi,
-            id: ItemId::new_for_testing(0),
-            must_bind: false,
-        }))
+        RsTypeKind::ExistingRustType {
+            existing_rust_type: Rc::new(ExistingRustType {
+                rs_name: name.clone(),
+                cc_name: "".into(),
+                unique_name: name,
+                template_args: Vec::new(),
+                template_arg_names: Vec::new(),
+                owning_target: BazelLabel("//new/for/testing".into()),
+                size_align: None,
+                is_same_abi,
+                id: ItemId::new_for_testing(0),
+                must_bind: false,
+            }),
+            template_args: Rc::default(),
+        }
     }
 
     #[gtest]
@@ -1986,7 +2034,7 @@ mod tests {
             .dfs_iter()
             .map(|t| match t {
                 RsTypeKind::FuncPtr { .. } => "fn".to_string(),
-                RsTypeKind::ExistingRustType(existing_rust_type) => {
+                RsTypeKind::ExistingRustType { existing_rust_type, .. } => {
                     existing_rust_type.rs_name.to_string()
                 }
                 _ => unreachable!("Only FuncPtr and ExistingRustType kinds are used in this test"),
