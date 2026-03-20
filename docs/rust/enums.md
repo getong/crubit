@@ -48,15 +48,27 @@ cannot be used to represent a Rust `enum`. Instead, the C++ bindings are a
 To receive C++ bindings, the `enum` must be movable in C++. See
 [Movable Types](movable_types.md).
 
-## Constructing Rust enums from C++
+## Enums with payload
 
-C++ bindings for Rust `enum`s provide a `static` `Make<variant name>` method for
-each of `enum` variants. These methods can be used to construct an `enum` value
-with the corresponding variant.
+Each variant of a Rust `enum` may contain an additional payload (a tuple or a
+struct).  C++ bindings for Rust `enum`s provide the following ways of working
+with an `enum` payload:
+
+* Constructing an `enum` variant with the given payload
+  by calling a `static` `Make<variant name>` method
+  (one such method is injected for each of `enum` variants).
+  The following bugs track future work in this area:
+
+    *   b/487357254: Constructing variants with a struct payload
+    *   b/489085607: Bindings for constructing enums should be `constexpr`
+
+* TODO(b/262737383): Matching `enum` variants and inspecting their payload.
 
 ### Example
 
 Given the following Rust crate:
+
+<!-- b/487357254: Cover struct payload in this example. -->
 
 ```
 {{ #include ../../examples/rust/enum_with_payload/example.rs }}
@@ -66,18 +78,10 @@ Given the following Rust crate:
 
 Crubit will generate the following bindings:
 
-<!-- TODO(b/487357254): Add an example for StructPayloadVariant constructors
-once available. -->
+<!-- Note: Kythe currently indexes this as class `CRUBIT_INTERNAL_RUST_TYPE` because it doesn't have a build rule. -->
 
 ```
 {{ #include ../../examples/rust/enum_with_payload/example_generated.h }}
 ```
-<!--  snippet:comment,block function:MakeRgb -->
+<!--  class:CRUBIT_INTERNAL_RUST_TYPE|Color -->
 
-
-## Known issues
-
-The following bugs track future work in this area:
-
-*   b/487357254: Constructing variants with a struct payload
-*   b/489085607: Bindings for constructing enums should be `constexpr`
