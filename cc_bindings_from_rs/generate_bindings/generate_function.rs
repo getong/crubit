@@ -21,7 +21,7 @@ use code_gen_utils::{
 use crubit_abi_type::{CrubitAbiTypeToCppExprTokens, CrubitAbiTypeToCppTokens};
 use database::code_snippet::{ApiSnippets, CcPrerequisites, CcSnippet};
 use database::{BindingsGenerator, TypeLocation};
-use error_report::{anyhow, bail, ensure};
+use error_report::{anyhow, bail};
 use itertools::Itertools;
 use proc_macro2::{Ident, Literal, TokenStream};
 use query_compiler::{is_copy, post_analysis_typing_env};
@@ -103,8 +103,12 @@ fn thunk_name(
                 .unwrap_or(def_name)
         }
     } else {
-        // Call to `mono` is ok - `generics_of` have been checked above.
-        let instance = ty::Instance::mono(tcx, def_id);
+        // `expect` and `expect_resolve` are used because `fn get_generic_args`
+        // should be called earlier to reject cases with unsupported generics.
+        let typing_env = ty::TypingEnv::non_body_analysis(tcx, def_id);
+        let args = db.get_generic_args(def_id).expect("Generics should be checked earlier");
+        let span = tcx.def_span(def_id);
+        let instance = ty::Instance::expect_resolve(tcx, typing_env, def_id, args, span);
         tcx.symbol_name(instance).name.to_string()
     };
     let target_path_mangled_hash = if db.no_thunk_name_mangling() {
@@ -756,16 +760,11 @@ pub fn generate_function<'tcx>(
 ) -> Result<ApiSnippets<'tcx>> {
     let tcx = db.tcx();
 
-    // TODO(b/281542952): Add support for `impl Into<T>` => `T` and similar substitutions.
-    ensure!(
-        !tcx.generics_of(def_id).requires_monomorphization(tcx),
-        "Generic functions are not supported yet (b/259749023)"
-    );
-    let sig_mid = liberate_and_deanonymize_late_bound_regions(
-        tcx,
-        tcx.fn_sig(def_id).instantiate_identity(),
-        def_id,
-    );
+    let sig_mid = {
+        let generic_args = db.get_generic_args(def_id)?;
+        let early_bound_fn_sig = tcx.fn_sig(def_id).instantiate(tcx, generic_args);
+        liberate_and_deanonymize_late_bound_regions(tcx, early_bound_fn_sig, def_id)
+    };
     check_fn_sig(&sig_mid)?;
 
     let trait_ref = tcx

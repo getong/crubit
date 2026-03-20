@@ -16,7 +16,7 @@ use code_gen_utils::CcInclude;
 use dyn_format::Format;
 use error_report::{ErrorReporting, ReportFatalError};
 use proc_macro2::{Ident, TokenStream};
-use rustc_middle::ty::{Ty, TyCtxt};
+use rustc_middle::ty::{self, Ty, TyCtxt};
 use rustc_span::def_id::{CrateNum, DefId};
 use rustc_span::Symbol;
 use std::collections::HashMap;
@@ -307,5 +307,10 @@ memoized::query_group! {
       ///
       /// Implementation: cc_bindings_from_rs/generate_bindings/generate_struct_and_union.rs?q=function:local_from_trait_impls_by_argument
       fn from_trait_impls_by_argument(&self, crate_num: CrateNum) -> Rc<HashMap<Ty<'tcx>, Vec<DefId>>>;
+
+      /// Given a function identified by `fn_def_id` (generic or non-generic) tries to return
+      /// the generic arguments that should be used in the generated Crubit bindings.
+      /// Fails if any of the generic parameters cannot be replaced with a concrete type.
+      fn get_generic_args(&self, fn_def_id: DefId) -> Result<ty::GenericArgsRef<'tcx>>;
   }
 }

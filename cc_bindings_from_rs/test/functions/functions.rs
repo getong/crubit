@@ -152,3 +152,51 @@ pub mod fn_must_use_tests {
         x + y
     }
 }
+
+pub mod generic_fn_tests {
+    pub mod into_trait_tests {
+        pub fn basic_test(arg: impl Into<i32>) -> i32 {
+            arg.into()
+        }
+
+        pub fn where_clause<T>(x: T) -> i32
+        where
+            T: Into<i32>,
+        {
+            x.into()
+        }
+
+        pub fn reused_generic_param<T: Into<i32>>(x: T, y: T) -> i32 {
+            x.into() + y.into()
+        }
+
+        pub fn multiple_generic_params(x: impl Into<i32>, y: impl Into<i32>) -> i32 {
+            x.into() + y.into()
+        }
+
+        /// This test was initially added to cover/verify the call to
+        /// `super_visit_with` from an `impl` of `GenericParamsFinder` in
+        /// `get_generic_args.rs`.
+        pub fn generic_param_nested_deeper_in_param_ty<T: Into<i32>>(xs: [T; 3]) -> i32 {
+            xs.into_iter().map(Into::into).sum()
+        }
+
+        /// Bindings for `fn unused_generic_param` are not supported, because
+        /// currently we don't spell out the generic type arguments in the
+        /// generated code (depending on type inference instead).  This doesn't
+        /// work for generic unused generic type parameters - e.g.:
+        ///
+        /// ```txt
+        /// error[E0283]: type annotations needed
+        ///
+        /// unsafe { ::functions::generic_fn_tests::into_trait_tests::unused_generic_param() }
+        ///          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        /// cannot infer type of the type parameter `T` declared on the function `unused_generic_param`
+        /// ...
+        /// help: consider specifying the generic argument
+        ///
+        /// unsafe { ::functions::generic_fn_tests::into_trait_tests::unused_generic_param::<T>() }
+        /// ```
+        pub fn unused_generic_param<T: Into<i32>>() {}
+    }
+}

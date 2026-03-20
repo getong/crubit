@@ -135,5 +135,15 @@ TEST(NoDiscardTest, WithMessageWorks) {
   EXPECT_EQ(5, tests::msg_add(2, 3));
 }
 
+TEST(GenericFnTest, IntoTraitTests) {
+  namespace tests = functions::generic_fn_tests::into_trait_tests;
+  EXPECT_EQ(123, tests::basic_test(123));
+  EXPECT_EQ(124, tests::where_clause(124));
+  EXPECT_EQ(125 + 456, tests::reused_generic_param(125, 456));
+  EXPECT_EQ(126 + 456, tests::multiple_generic_params(126, 456));
+  EXPECT_EQ(1 + 2 + 3,
+            tests::generic_param_nested_deeper_in_param_ty({1, 2, 3}));
+}
+
 }  // namespace
 }  // namespace crubit

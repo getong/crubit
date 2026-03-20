@@ -21,6 +21,7 @@
 #include "support/lifetime_annotations.h"
 #include "support/rs_std/char.h"
 
+#include <array>
 #include <cstdint>
 
 namespace functions::fn_abi_tests {
@@ -134,6 +135,41 @@ void set_mut_ref_to_sum_of_ints(std::int32_t& sum, std::int32_t x,
                                 std::int32_t y);
 
 }  // namespace functions::fn_param_ty_tests
+
+namespace functions::generic_fn_tests::into_trait_tests {
+
+// Generated from:
+// cc_bindings_from_rs/test/functions/functions.rs;l=158
+std::int32_t basic_test(std::int32_t arg);
+
+//  This test was initially added to cover/verify the call to
+//  `super_visit_with` from an `impl` of `GenericParamsFinder` in
+//  `get_generic_args.rs`.
+//
+// Generated from:
+// cc_bindings_from_rs/test/functions/functions.rs;l=180
+std::int32_t generic_param_nested_deeper_in_param_ty(
+    std::array<std::int32_t, 3> xs);
+
+// Generated from:
+// cc_bindings_from_rs/test/functions/functions.rs;l=173
+std::int32_t multiple_generic_params(std::int32_t x, std::int32_t y);
+
+// Generated from:
+// cc_bindings_from_rs/test/functions/functions.rs;l=169
+std::int32_t reused_generic_param(std::int32_t x, std::int32_t y);
+
+// Error generating bindings for
+// `functions_golden::generic_fn_tests::into_trait_tests::unused_generic_param`
+// defined at
+// cc_bindings_from_rs/test/functions/functions.rs;l=200:
+// No support for replacing an _unused_ generic type param: `T`
+
+// Generated from:
+// cc_bindings_from_rs/test/functions/functions.rs;l=162
+std::int32_t where_clause(std::int32_t x);
+
+}  // namespace functions::generic_fn_tests::into_trait_tests
 
 namespace functions::other_fn_param_tests {
 
@@ -309,6 +345,50 @@ inline void set_mut_ref_to_sum_of_ints(std::int32_t& sum, std::int32_t x,
 }
 
 }  // namespace functions::fn_param_ty_tests
+
+namespace functions::generic_fn_tests::into_trait_tests {
+
+namespace __crubit_internal {
+extern "C" std::int32_t __crubit_thunk_basic_utest(std::int32_t);
+}
+inline std::int32_t basic_test(std::int32_t arg) {
+  return __crubit_internal::__crubit_thunk_basic_utest(arg);
+}
+
+namespace __crubit_internal {
+extern "C" std::int32_t
+__crubit_thunk_generic_uparam_unested_udeeper_uin_uparam_uty(void*);
+}
+inline std::int32_t generic_param_nested_deeper_in_param_ty(
+    std::array<std::int32_t, 3> xs) {
+  return __crubit_internal::
+      __crubit_thunk_generic_uparam_unested_udeeper_uin_uparam_uty(&xs);
+}
+
+namespace __crubit_internal {
+extern "C" std::int32_t __crubit_thunk_multiple_ugeneric_uparams(std::int32_t,
+                                                                 std::int32_t);
+}
+inline std::int32_t multiple_generic_params(std::int32_t x, std::int32_t y) {
+  return __crubit_internal::__crubit_thunk_multiple_ugeneric_uparams(x, y);
+}
+
+namespace __crubit_internal {
+extern "C" std::int32_t __crubit_thunk_reused_ugeneric_uparam(std::int32_t,
+                                                              std::int32_t);
+}
+inline std::int32_t reused_generic_param(std::int32_t x, std::int32_t y) {
+  return __crubit_internal::__crubit_thunk_reused_ugeneric_uparam(x, y);
+}
+
+namespace __crubit_internal {
+extern "C" std::int32_t __crubit_thunk_where_uclause(std::int32_t);
+}
+inline std::int32_t where_clause(std::int32_t x) {
+  return __crubit_internal::__crubit_thunk_where_uclause(x);
+}
+
+}  // namespace functions::generic_fn_tests::into_trait_tests
 
 namespace functions::other_fn_param_tests {
 

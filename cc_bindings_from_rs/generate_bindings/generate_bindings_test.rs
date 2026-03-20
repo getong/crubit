@@ -1327,7 +1327,7 @@ fn test_format_item_static_method_with_generic_type_parameters() {
         let main_api = &result.main_api;
         let unsupported_msg = "Error generating bindings for `SomeStruct::generic_method` \
                                defined at <crubit_unittests.rs>;l=12: \
-                               Generic functions are not supported yet (b/259749023)";
+                               No valid non-generic replacement for generic type param `T`";
         assert_cc_matches!(
             main_api.tokens,
             quote! {

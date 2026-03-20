@@ -22,6 +22,7 @@ pub mod generate_function;
 mod generate_function_thunk;
 mod generate_struct_and_union;
 mod generate_template_specialization;
+mod get_generic_args;
 
 use crate::format_type::{
     crubit_abi_type_from_ty, ensure_ty_is_pointer_like, format_cc_ident, format_cc_ident_symbol,
@@ -230,6 +231,7 @@ pub fn new_database<'db>(
         generate_adt_core,
         crubit_abi_type_from_ty,
         from_trait_impls_by_argument,
+        get_generic_args::get_generic_args,
     )
 }
 

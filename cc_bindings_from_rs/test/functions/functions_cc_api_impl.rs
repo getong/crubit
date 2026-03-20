@@ -85,6 +85,31 @@ unsafe extern "C" fn __crubit_thunk_set_umut_uref_uto_usum_uof_uints(
     unsafe { ::functions_golden::fn_param_ty_tests::set_mut_ref_to_sum_of_ints(sum, x, y) }
 }
 #[unsafe(no_mangle)]
+unsafe extern "C" fn __crubit_thunk_basic_utest(arg: i32) -> i32 {
+    unsafe { ::functions_golden::generic_fn_tests::into_trait_tests::basic_test(arg) }
+}
+#[unsafe(no_mangle)]
+unsafe extern "C" fn __crubit_thunk_generic_uparam_unested_udeeper_uin_uparam_uty(
+    xs: &'static mut ::core::mem::MaybeUninit<[i32; 3]>,
+) -> i32 {
+    unsafe {
+        let xs = xs.assume_init_read();
+        ::functions_golden::generic_fn_tests::into_trait_tests::generic_param_nested_deeper_in_param_ty(xs)
+    }
+}
+#[unsafe(no_mangle)]
+unsafe extern "C" fn __crubit_thunk_multiple_ugeneric_uparams(x: i32, y: i32) -> i32 {
+    unsafe { ::functions_golden::generic_fn_tests::into_trait_tests::multiple_generic_params(x, y) }
+}
+#[unsafe(no_mangle)]
+unsafe extern "C" fn __crubit_thunk_reused_ugeneric_uparam(x: i32, y: i32) -> i32 {
+    unsafe { ::functions_golden::generic_fn_tests::into_trait_tests::reused_generic_param(x, y) }
+}
+#[unsafe(no_mangle)]
+unsafe extern "C" fn __crubit_thunk_where_uclause(x: i32) -> i32 {
+    unsafe { ::functions_golden::generic_fn_tests::into_trait_tests::where_clause(x) }
+}
+#[unsafe(no_mangle)]
 unsafe extern "C" fn __crubit_thunk_add_ui32_uvia_urust_uabi_uwith_uduplicated_uparam_unames(
     x: i32,
     y: i32,

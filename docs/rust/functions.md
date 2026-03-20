@@ -81,3 +81,16 @@ some lifetime (e.g. `'static`) are also still not supported.
 If you wish to accept more than one reference/pointer in C++, a raw pointer
 (`*const T`, `*mut T`) can be used instead. However, all of the usual `unsafe`
 caveats apply.
+
+## Generic functions
+
+Crubit doesn't support generating bindings for *arbitrary* generic functions.
+Nevertheless, a small set of generic type parameters is supported by using
+canonical substitutions which are defined as follows:
+
+Generic constraints | Canonical substitution
+------------------- | ----------------------------------------------
+`T: Into<U>`        | `U`
+`T: AsRef<U>`       | TODO(b/281542952): Implement this substitution
+
+TODO(b/281542952): Add an example once this feature is released.

@@ -920,16 +920,81 @@ fn test_format_item_lifetime_generic_fn_with_various_lifetimes() {
 }
 
 #[test]
-fn test_format_item_unsupported_type_generic_fn() {
+fn test_format_item_generic_fn_into_trait_basic_replacement() {
+    let test_src = r#"
+            #![allow(unused)]
+            pub fn generic_function(arg: impl Into<i32>) { todo!() }
+        "#;
+    test_format_item(test_src, "generic_function", |result| {
+        let result = result.unwrap().unwrap();
+        assert_cc_matches!(
+            result.main_api.tokens,
+            quote! {
+              void generic_function(std::int32_t arg);
+            }
+        );
+        assert_rs_matches!(
+            result.rs_details.tokens,
+            quote! {
+                unsafe extern "C" fn __crubit_thunk_generic_ufunction(arg: i32) -> () {
+                    unsafe { ::rust_out::generic_function(arg) }
+                }
+            }
+        );
+    });
+}
+
+/// This test was initally added to provide coverage/verification that
+/// _all_ generic parameters need to have valid replacements.
+#[test]
+fn test_format_item_generic_fn_into_trait_and_unsupported_trait() {
+    let test_src = r#"
+            pub trait MyTrait {}
+            pub fn generic_function(_i: impl Into<i32>, _t: impl MyTrait) { todo!() }
+        "#;
+    test_format_item(test_src, "generic_function", |result| {
+        let err = result.unwrap_err();
+        assert_eq!(err, "No valid non-generic replacement for generic type param `impl MyTrait`");
+    });
+}
+
+/// This test was initally added to provide coverage/verification that
+/// _all_ clauses/constraints of `T` have to be considered in
+/// `is_valid_replacement_for_generic_type_param`.
+#[test]
+fn test_format_item_generic_fn_into_trait_when_failed_substitiution() {
+    let test_src = r#"
+            pub trait MyTrait {}
+            pub fn generic_function<T>(_t: T) where T: Into<i32>, T: MyTrait { todo!() }
+        "#;
+    test_format_item(test_src, "generic_function", |result| {
+        let err = result.unwrap_err();
+        assert_eq!(err, "No valid non-generic replacement for generic type param `T`");
+    });
+}
+
+#[test]
+fn test_format_item_generic_fn_unsupported_const_param() {
+    let test_src = r#"
+            pub fn generic_function<const N: usize>() { todo!() }
+        "#;
+    test_format_item(test_src, "generic_function", |result| {
+        let err = result.unwrap_err();
+        assert_eq!(err, "`const`-generic functions are not supported (b/259749023)");
+    });
+}
+
+#[test]
+fn test_format_item_generic_fn_unsupported_type_param() {
     let test_src = r#"
             use std::fmt::Display;
-            pub fn generic_function<T: Default + Display>() {
+            pub fn generic_function<T: Default + Display>(_: T) {
                 println!("{}", T::default());
             }
         "#;
     test_format_item(test_src, "generic_function", |result| {
         let err = result.unwrap_err();
-        assert_eq!(err, "Generic functions are not supported yet (b/259749023)");
+        assert_eq!(err, "No valid non-generic replacement for generic type param `T`");
     });
 }
 
