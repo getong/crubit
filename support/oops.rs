@@ -121,7 +121,8 @@ where
     Derived: Inherits<Base>,
 {
     unsafe fn unsafe_upcast(self: *const Derived) -> *const Base {
-        Derived::upcast_ptr(self)
+        // SAFETY: self is a valid pointer to a derived object.
+        unsafe { Derived::upcast_ptr(self) }
     }
 }
 
@@ -131,7 +132,8 @@ where
     Derived: Inherits<Base>,
 {
     unsafe fn unsafe_upcast(self: *mut Derived) -> *mut Base {
-        Derived::upcast_ptr_mut(self)
+        // SAFETY: self is a valid pointer to a derived object.
+        unsafe { Derived::upcast_ptr_mut(self) }
     }
 }
 
@@ -224,7 +226,8 @@ mod test {
 
         unsafe impl Inherits<Base> for Derived {
             unsafe fn upcast_ptr(derived: *const Self) -> *const Base {
-                &(*derived).base
+                // SAFETY: `derived` is a valid pointer to a `Derived` value.
+                unsafe { &(*derived).base }
             }
         }
         let mut derived = Derived::default();
@@ -261,7 +264,8 @@ mod test {
 
         unsafe impl Inherits<Base> for Derived {
             unsafe fn upcast_ptr(derived: *const Self) -> *const Base {
-                &(*derived).base
+                // SAFETY: `derived` is a valid pointer to a `Derived` value.
+                unsafe { &(*derived).base }
             }
         }
         let mut derived = Derived::default();
