@@ -4,9 +4,11 @@
 
 use arc_anyhow::Result;
 use googletest::prelude::gtest;
-use multiplatform_ir_testing::{ir_from_cc, ir_from_fmt_cc};
+use multiplatform_ir_testing::{ir_from_cc, ir_from_cc_annotated, ir_from_fmt_cc};
 use quote::quote;
-use test_generators::generate_bindings_tokens_for_test;
+use test_generators::{
+    generate_bindings_tokens_for_test, generate_bindings_tokens_for_test_with_annotations,
+};
 use token_stream_matchers::{assert_rs_matches, assert_rs_not_matches};
 
 #[gtest]
@@ -16,10 +18,43 @@ fn test_generate_enum_basic() -> Result<()> {
     assert_rs_matches!(
         rs_api,
         quote! {
+            #[doc=" Generated from: ir_from_cc_virtual_header.h;l=3"]
             #[repr(transparent)]
             #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash, PartialOrd, Ord)]
             #[doc="CRUBIT_ANNOTATE: cpp_type=Color"]
             pub struct Color(::ffi_11::c_uint);
+            impl Color {
+                pub const kRed: Color = Color(::ffi_11::new_c_uint(5));
+                pub const kBlue: Color = Color(::ffi_11::new_c_uint(6));
+            }
+            impl From<::ffi_11::c_uint> for Color {
+                fn from(value: ::ffi_11::c_uint) -> Color {
+                    Color(value)
+                }
+            }
+            impl From<Color> for ::ffi_11::c_uint {
+                fn from(value: Color) -> ::ffi_11::c_uint {
+                    value.0
+                }
+            }
+        }
+    );
+    Ok(())
+}
+
+#[gtest]
+fn test_generate_enum_basic_with_annotations() -> Result<()> {
+    let ir = ir_from_cc_annotated("enum Color { kRed = 5, kBlue };")?;
+    let rs_api = generate_bindings_tokens_for_test_with_annotations(ir)?.rs_api;
+    assert_rs_matches!(
+        rs_api,
+        quote! {
+            __CAPTURE_TAG__ "ir_from_cc_virtual_header.h" "42" "47"
+            #[doc=" Generated from: ir_from_cc_virtual_header.h;l=3[42,47]"]
+            #[repr(transparent)]
+            #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash, PartialOrd, Ord)]
+            #[doc="CRUBIT_ANNOTATE: cpp_type=Color"]
+            pub struct __CAPTURE_BEGIN__ Color __CAPTURE_END__ (::ffi_11::c_uint);
             impl Color {
                 pub const kRed: Color = Color(::ffi_11::new_c_uint(5));
                 pub const kBlue: Color = Color(::ffi_11::new_c_uint(6));
@@ -54,6 +89,7 @@ fn test_generate_scoped_enum_basic() -> Result<()> {
     assert_rs_matches!(
         rs_api,
         quote! {
+            #[doc=" Generated from: ir_from_cc_virtual_header.h;l=3"]
             #[repr(transparent)]
             #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash, PartialOrd, Ord)]
             #[doc="CRUBIT_ANNOTATE: cpp_type=Color"]
@@ -92,6 +128,7 @@ fn test_generate_enum_with_64_bit_signed_vals() -> Result<()> {
     assert_rs_matches!(
         rs_api,
         quote! {
+            #[doc=" Generated from: ir_from_cc_virtual_header.h;l=3"]
             #[repr(transparent)]
             #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash, PartialOrd, Ord)]
             #[doc="CRUBIT_ANNOTATE: cpp_type=Color"]
@@ -131,6 +168,7 @@ fn test_generate_enum_with_64_bit_unsigned_vals() -> Result<()> {
     assert_rs_matches!(
         rs_api,
         quote! {
+            #[doc=" Generated from: ir_from_cc_virtual_header.h;l=3"]
             #[repr(transparent)]
             #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash, PartialOrd, Ord)]
             #[doc="CRUBIT_ANNOTATE: cpp_type=Color"]
@@ -164,6 +202,7 @@ fn test_generate_enum_with_32_bit_signed_vals() -> Result<()> {
     assert_rs_matches!(
         rs_api,
         quote! {
+            #[doc=" Generated from: ir_from_cc_virtual_header.h;l=3"]
             #[repr(transparent)]
             #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash, PartialOrd, Ord)]
             #[doc="CRUBIT_ANNOTATE: cpp_type=Color"]
@@ -197,6 +236,7 @@ fn test_generate_enum_with_32_bit_unsigned_vals() -> Result<()> {
     assert_rs_matches!(
         rs_api,
         quote! {
+            #[doc=" Generated from: ir_from_cc_virtual_header.h;l=3"]
             #[repr(transparent)]
             #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash, PartialOrd, Ord)]
             #[doc="CRUBIT_ANNOTATE: cpp_type=Color"]
@@ -228,6 +268,7 @@ fn test_generate_enum_bool() -> Result<()> {
     assert_rs_matches!(
         rs_api,
         quote! {
+            #[doc=" Generated from: ir_from_cc_virtual_header.h;l=3"]
             #[repr(transparent)]
             #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash, PartialOrd, Ord)]
             #[doc="CRUBIT_ANNOTATE: cpp_type=Bool"]
@@ -258,6 +299,7 @@ fn test_generate_enum_bool_alias() -> Result<()> {
     assert_rs_matches!(
         rs_api,
         quote! {
+            #[doc=" Generated from: ir_from_cc_virtual_header.h;l=3"]
             #[repr(transparent)]
             #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash, PartialOrd, Ord)]
             #[doc="CRUBIT_ANNOTATE: cpp_type=Bool"]

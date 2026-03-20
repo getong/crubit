@@ -218,6 +218,7 @@ impl Default for CanAbslStringifyAndOstream {
 //   Unsupported return type: template instantiation is not yet supported
 //   Unsupported parameter #0 (out): template instantiation is not yet supported
 
+/// Generated from: rs_bindings_from_cc/test/display/displayables.h;l=67
 #[repr(transparent)]
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash, PartialOrd, Ord)]
 ///CRUBIT_ANNOTATE: cpp_type=DisplayableEnum

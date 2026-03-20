@@ -16,6 +16,7 @@
 #include "rs_bindings_from_cc/bazel_types.h"
 #include "rs_bindings_from_cc/ir.h"
 #include "clang/AST/Decl.h"
+#include "clang/AST/DeclarationName.h"
 #include "clang/AST/Type.h"
 #include "clang/Basic/LLVM.h"
 
@@ -162,6 +163,8 @@ std::optional<IR::Item> EnumDeclImporter::Import(clang::EnumDecl* enum_decl) {
   }
 
   ictx_.MarkAsSuccessfullyImported(enum_decl);
+  clang::DeclarationNameInfo name_info(enum_decl->getDeclName(),
+                                       enum_decl->getLocation());
   return Enum{
       .cc_name = (*enum_name).cc_identifier,
       .rs_name = (*enum_name).rs_identifier(),
@@ -169,7 +172,7 @@ std::optional<IR::Item> EnumDeclImporter::Import(clang::EnumDecl* enum_decl) {
       .id = ictx_.GenerateItemId(enum_decl),
       .owning_target = std::move(owning_target),
       .source_loc =
-          ictx_.ConvertSourceLocation(enum_decl->getBeginLoc(), nullptr),
+          ictx_.ConvertSourceLocation(enum_decl->getBeginLoc(), &name_info),
       .underlying_type = *std::move(type),
       .enumerators = enum_decl->isCompleteDefinition()
                          ? std::make_optional(std::move(enumerators))

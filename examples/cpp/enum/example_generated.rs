@@ -14,6 +14,7 @@
 #![allow(unused)]
 #![deny(warnings)]
 
+/// Generated from: examples/cpp/enum/example.h;l=8
 #[repr(transparent)]
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash, PartialOrd, Ord)]
 ///CRUBIT_ANNOTATE: cpp_type=Color

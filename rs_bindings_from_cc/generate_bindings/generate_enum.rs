@@ -11,6 +11,7 @@ use database::code_snippet::{
     integer_constant_to_token_stream, ApiSnippets, DisplayImpl, GeneratedItem, Thunk, ThunkImpl,
 };
 use database::BindingsGenerator;
+use generate_comment::{generate_doc_comment, parse_extended_source_loc};
 use ir::Enum;
 use proc_macro2::TokenStream;
 use quote::quote;
@@ -83,11 +84,34 @@ pub fn generate_enum(db: &BindingsGenerator, enum_: Rc<Enum>) -> Result<ApiSnipp
         };
 
     let annotation = format!("CRUBIT_ANNOTATE: cpp_type={fully_qualified_cc_name}");
+    // TODO(b/494281055): enums don't have doc_comments.
+    let doc_comment = generate_doc_comment(
+        None,
+        None,
+        Some(&enum_.source_loc),
+        db.environment(),
+        db.kythe_annotations(),
+    );
+    let capture_tags = if db.kythe_annotations() {
+        if let Some((file_name, start, end)) = parse_extended_source_loc(&enum_.source_loc) {
+            quote! { __CAPTURE_TAG__ #file_name #start #end }
+        } else {
+            quote! { __CAPTURE_TAG__ "" "0" "0" }
+        }
+    } else {
+        quote! {}
+    };
+    let bracketed_enum_name = if db.kythe_annotations() {
+        quote! { __CAPTURE_BEGIN__ #name __CAPTURE_END__ }
+    } else {
+        quote! { #name }
+    };
     let item = quote! {
+        #capture_tags #doc_comment
         #[repr(transparent)]
         #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash, PartialOrd, Ord)]
         #[doc=#annotation]
-        pub struct #name(#underlying_type_tokens);
+        pub struct #bracketed_enum_name(#underlying_type_tokens);
         impl #name {
             #enumerators
         }
