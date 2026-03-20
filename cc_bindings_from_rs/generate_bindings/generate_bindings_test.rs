@@ -10,7 +10,10 @@ use proc_macro2::{Ident, TokenStream, TokenTree};
 use quote::quote;
 use run_compiler_test_support::run_compiler_for_testing;
 use rustc_span::symbol::Symbol;
-use test_helpers::{bindings_db_for_tests, test_format_item, test_generated_bindings};
+use test_helpers::{
+    bindings_db_for_tests, test_format_item, test_format_item_with_features,
+    test_generated_bindings,
+};
 use token_stream_matchers::{
     assert_cc_matches, assert_cc_not_matches, assert_rs_matches, assert_rs_not_matches,
 };
@@ -1949,6 +1952,7 @@ fn test_generate_bindings_use_list_items() {
                 ...
                 namespace rust_out::test_mod {
 
+                __COMMENT__ "Generated from: <crubit_unittests.rs>;l=3"
                 using X CRUBIT_INTERNAL_RUST_TYPE(":: rust_out :: X") =
                     ::rust_out::X;
 
@@ -1958,6 +1962,7 @@ fn test_generate_bindings_use_list_items() {
 
                 namespace rust_out::test_mod {
 
+                __COMMENT__ "Generated from: <crubit_unittests.rs>;l=6"
                 using Y CRUBIT_INTERNAL_RUST_TYPE(":: rust_out :: Y") =
                     ::rust_out::Y;
 
@@ -2041,6 +2046,33 @@ fn test_format_item_type_alias() {
             }
         );
     });
+}
+
+#[test]
+fn test_format_item_type_alias_with_kythe_annotations() {
+    let test_src = r#"
+            pub type TypeAlias = i32;
+        "#;
+    test_format_item_with_features(
+        test_src,
+        "TypeAlias",
+        crubit_feature::CrubitFeature::Experimental | crubit_feature::CrubitFeature::Supported,
+        /* with_kythe_annotations= */ true,
+        |result| {
+            let result = result.unwrap().unwrap();
+            let main_api = &result.main_api;
+            assert!(!main_api.prereqs.is_empty());
+            assert_cc_matches!(
+                main_api.tokens,
+                quote! {
+                    __CAPTURE_TAG__ "<crubit_unittests.rs>" "22" "31"
+                    __COMMENT__ "Generated from: <crubit_unittests.rs>;l=2"
+                    using __CAPTURE_BEGIN__ TypeAlias __CAPTURE_END__
+                    CRUBIT_INTERNAL_RUST_TYPE(":: rust_out :: TypeAlias") = std::int32_t;
+                }
+            );
+        },
+    );
 }
 
 #[test]

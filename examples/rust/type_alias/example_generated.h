@@ -19,9 +19,12 @@
 #include <cstdint>
 
 namespace example_crate {
+
+// Generated from:
+// examples/rust/type_alias/example.rs;l=5
 using TypeAlias CRUBIT_INTERNAL_RUST_TYPE(
     ":: example_crate_golden :: TypeAlias") = std::int32_t;
-}
+}  // namespace example_crate
 
 #pragma clang diagnostic pop
 #endif  // THIRD_PARTY_CRUBIT_EXAMPLES_RUST_TYPE_ALIAS_EXAMPLE_CRATE_GOLDEN

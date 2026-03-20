@@ -202,6 +202,11 @@ namespace uses {
 }  // namespace uses
 
 namespace uses {
+
+// CRUBIT_ANNOTATE: must_bind=
+//
+// Generated from:
+// cc_bindings_from_rs/test/uses/uses.rs;l=21
 using ExportedStruct CRUBIT_INTERNAL_RUST_TYPE(
     ":: uses_golden :: AliasOfExportedStruct") = ::uses::AliasOfExportedStruct;
 static_assert(
@@ -232,8 +237,17 @@ inline void AliasOfExportedStruct::__crubit_field_offset_assertions() {
 }  // namespace uses
 
 namespace uses {
+
+// CRUBIT_ANNOTATE: must_bind=
+//
+// Generated from:
+// cc_bindings_from_rs/test/uses/uses.rs;l=63
 using Alias CRUBIT_INTERNAL_RUST_TYPE(":: uses_golden :: Original") =
     ::uses::Original;
+// CRUBIT_ANNOTATE: must_bind=
+//
+// Generated from:
+// cc_bindings_from_rs/test/uses/uses.rs;l=63
 using Alias2 CRUBIT_INTERNAL_RUST_TYPE(":: uses_golden :: Original") =
     ::uses::Original;
 static_assert(
@@ -251,6 +265,9 @@ inline void Original::__crubit_field_offset_assertions() {
 }  // namespace uses
 
 namespace uses {
+
+// Generated from:
+// cc_bindings_from_rs/test/uses/uses.rs;l=74
 using PublicName CRUBIT_INTERNAL_RUST_TYPE(
     ":: uses_golden :: OtherPublicName") = ::uses::OtherPublicName;
 static_assert(
@@ -268,7 +285,12 @@ inline void OtherPublicName::__crubit_field_offset_assertions() {
 }  // namespace uses
 
 namespace uses {
+
+// Generated from:
+// cc_bindings_from_rs/test/uses/extern_crate.rs;l=6
 using X CRUBIT_INTERNAL_RUST_TYPE(":: extern_crate :: X") = ::extern_crate::X;
+// Generated from:
+// cc_bindings_from_rs/test/uses/extern_crate.rs;l=6
 using XFromExternCrate CRUBIT_INTERNAL_RUST_TYPE(":: extern_crate :: X") =
     ::extern_crate::X;
 }  // namespace uses

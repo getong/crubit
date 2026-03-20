@@ -982,6 +982,7 @@ pub(crate) fn create_type_alias_with_rs_type<'tcx>(
     alias_name: &str,
     alias_type: Ty<'tcx>,
 ) -> Result<CcSnippet<'tcx>> {
+    let doc_comment = generate_doc_comment(db, def_id);
     let cc_bindings = db.format_ty_for_cc(alias_type, TypeLocation::Other)?;
     let mut main_api_prereqs = CcPrerequisites::default();
     let actual_type_name = cc_bindings.into_tokens(&mut main_api_prereqs);
@@ -994,7 +995,13 @@ pub(crate) fn create_type_alias_with_rs_type<'tcx>(
         attributes.push(cc_deprecated_tag);
     }
 
-    let tokens = quote! {using #alias_name #(#attributes)* = #actual_type_name;};
+    let bracketed_alias_name = if db.kythe_annotations() {
+        quote! { __CAPTURE_BEGIN__ #alias_name __CAPTURE_END__ }
+    } else {
+        quote! { #alias_name }
+    };
+
+    let tokens = quote! { __NEWLINE__ #doc_comment using #bracketed_alias_name #(#attributes)* = #actual_type_name; };
 
     Ok(CcSnippet { prereqs: main_api_prereqs, tokens })
 }

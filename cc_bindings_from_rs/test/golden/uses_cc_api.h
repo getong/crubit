@@ -272,8 +272,11 @@ inline void Foo::__crubit_field_offset_assertions() {
 }  // namespace uses_rust
 
 namespace uses_rust::test_mod {
+
+// Generated from:
+// cc_bindings_from_rs/test/golden/uses.rs;l=77
 using S CRUBIT_INTERNAL_RUST_TYPE(":: uses_rust_golden :: G") = ::uses_rust::G;
-}
+}  // namespace uses_rust::test_mod
 
 namespace uses_rust {
 
@@ -308,9 +311,12 @@ inline void InnerX::__crubit_field_offset_assertions() {
 }  // namespace uses_rust
 
 namespace uses_rust::test_use_glob {
+
+// Generated from:
+// cc_bindings_from_rs/test/golden/uses.rs;l=20
 using X1 CRUBIT_INTERNAL_RUST_TYPE(":: uses_rust_golden :: X1") =
     ::uses_rust::X1;
-}
+}  // namespace uses_rust::test_use_glob
 
 namespace uses_rust {
 

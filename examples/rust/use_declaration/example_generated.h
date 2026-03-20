@@ -60,9 +60,12 @@ void function();
 }  // namespace example_crate
 
 namespace example_crate::module {
+
+// Generated from:
+// examples/rust/use_declaration/example.rs;l=8
 using Type CRUBIT_INTERNAL_RUST_TYPE(":: example_crate_golden :: Type") =
     ::example_crate::Type;
-}
+}  // namespace example_crate::module
 
 namespace example_crate {
 

@@ -161,6 +161,8 @@ static_assert(std::is_trivially_copy_assignable_v<::leaf_rs_lib::LeafRsEnum>);
 inline void LeafRsEnum::__crubit_field_offset_assertions() {
   static_assert(0 == offsetof(LeafRsEnum, __opaque_blob_of_bytes));
 }
+// Generated from:
+// common/test/bidirectional_deps/leaf_rs_lib.rs;l=7
 using LeafRsTypeAlias CRUBIT_INTERNAL_RUST_TYPE(
     ":: leaf_rs_lib_golden :: LeafRsType") = ::leaf_rs_lib::LeafRsType;
 static_assert(

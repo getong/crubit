@@ -533,6 +533,8 @@ template <>
 struct rs_std::impl<::traits::AssociatedTypeStruct,
                     ::traits::AssociatedTypeTrait> {
   static constexpr bool kIsImplemented = true;
+  // Generated from:
+  // cc_bindings_from_rs/test/traits/traits.rs;l=148
   using MyAssocType CRUBIT_INTERNAL_RUST_TYPE(
       "<traits_golden::AssociatedTypeStruct as :: traits_golden :: "
       "AssociatedTypeTrait>::MyAssocType") = std::int32_t;
