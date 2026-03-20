@@ -2,6 +2,8 @@
 // Exceptions. See /LICENSE for license information.
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 
+#include <tuple>
+
 #include "gtest/gtest.h"
 #include "cc_bindings_from_rs/test/bridging/cc_type.h"
 #include "cc_bindings_from_rs/test/bridging/rust_pointer_types.h"
@@ -11,13 +13,13 @@ namespace crubit {
 namespace {
 
 TEST(TypeBridging, StructToStructTest) {
-  crubit::test::TheCppType cpp_type = rust_type::create_new(1);
+  crubit::test::TheCppType cpp_type = ::rust_type::create_new(1);
 
-  EXPECT_EQ(rust_type::get_x(cpp_type), 1);
+  EXPECT_EQ(::rust_type::get_x(cpp_type), 1);
 }
 
 TEST(TypeBridging, StructToPointerTest) {
-  crubit::test::TheCppType cpp_type = rust_type::create_new(2);
+  crubit::test::TheCppType cpp_type = ::rust_type::create_new(2);
 
   crubit::test::TheCppType* ptr = rust_pointer_types::pass_through(&cpp_type);
   EXPECT_EQ(ptr, &cpp_type);
@@ -27,16 +29,16 @@ TEST(TypeBridging, StructToPointerTest) {
 }
 
 TEST(TypeBridging, StructConversionTest) {
-  crubit::test::TheCppType cpp_type = rust_type::create_new(1);
+  crubit::test::TheCppType cpp_type = ::rust_type::create_new(1);
 
-  EXPECT_EQ(rust_type::into_something_else(cpp_type).field, 1);
+  EXPECT_EQ(::rust_type::into_something_else(cpp_type).field, 1);
 }
 
 TEST(TypeBridging, NestedInTest) {
   std::tuple<crubit::test::TheCppType> cpp_type =
-      rust_type::create_in_tuple(37);
-  EXPECT_EQ(rust_type::get_x(std::get<0>(cpp_type)), 37);
-  EXPECT_EQ(rust_type::get_x_from_tuple(cpp_type), 37);
+      ::rust_type::create_in_tuple(37);
+  EXPECT_EQ(::rust_type::get_x(std::get<0>(cpp_type)), 37);
+  EXPECT_EQ(::rust_type::get_x_from_tuple(cpp_type), 37);
 }
 
 }  // namespace

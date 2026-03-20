@@ -18,11 +18,33 @@
 #define CRUBIT_INTERNAL_ANNOTATE_TYPE(...)
 #endif
 
+namespace crubit::rust_type {
+// Helper for CRUBIT_INTERNAL_RUST_TYPE. This type should never be used
+// directly.
+template <typename...>
+struct Args {};
+
+// Helper for CRUBIT_INTERNAL_RUST_TYPE. Instantiations of this type can be used
+// to represent const-generic arguments in Rust.
+//
+// Example:
+//
+// ```cpp
+// template <typename T, int N>
+// struct CRUBIT_INTERNAL_RUST_TYPE("MyType", T, crubit::rust_type::Const<N>)
+// MyType {};
+// ```
+//
+// `MyType<T, 123>` in C++ will then be mapped to `MyType<T, 123>` in Rust.
+template <auto>
+struct Const {};
+}  // namespace crubit::rust_type
+
 // Unsafe: disables bindings, and reinterprets all uses of this type as `t`.
 //
 // This attribute completely disables automated bindings for the type which it
 // appertains to. All uses of that type are replaced with uses of `t`, which
-// must be a rust type which exists and is guaranteed to be available by that
+// must be a Rust type which exists and is guaranteed to be available by that
 // name.
 //
 // This can be applied to a struct, class, or enum.
@@ -51,8 +73,9 @@
 //
 // SAFETY:
 //   If the type is not layout-compatible with `t`, the behavior is undefined.
-#define CRUBIT_INTERNAL_RUST_TYPE(t) \
-  CRUBIT_INTERNAL_ANNOTATE("crubit_internal_rust_type", t)
+#define CRUBIT_INTERNAL_RUST_TYPE(t, ...)                  \
+  CRUBIT_INTERNAL_ANNOTATE("crubit_internal_rust_type", t, \
+                           crubit::rust_type::Args<__VA_ARGS__>())
 
 // Unsafe: forces a type to be treated as C abi compatible with its rust
 // equivalent.

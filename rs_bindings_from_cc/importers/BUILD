@@ -186,6 +186,7 @@ cc_library(
         "//common:status_macros",
         "//rs_bindings_from_cc:cc_ir",
         "//rs_bindings_from_cc:decl_importer",
+        "@abseil-cpp//absl/base:nullability",
         "@abseil-cpp//absl/status",
         "@abseil-cpp//absl/status:statusor",
         "@abseil-cpp//absl/strings",

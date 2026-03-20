@@ -2256,6 +2256,13 @@ impl IR {
         })
     }
 
+    pub fn existing_rust_types(&self) -> impl Iterator<Item = &Rc<ExistingRustType>> {
+        self.items().filter_map(|item| match item {
+            Item::ExistingRustType(existing_rust_type) => Some(existing_rust_type),
+            _ => None,
+        })
+    }
+
     /// Returns whether `target` is the current target.
     pub fn is_current_target(&self, target: &BazelLabel) -> bool {
         // TODO(hlopko): Make this be a pointer comparison, now it's comparing string

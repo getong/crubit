@@ -67,15 +67,6 @@ impl Default for ExistingRustTypeFieldTypes {
     }
 }
 
-// error: class `CppPtr` could not be bound
-//   Class templates are not yet supported
-
-// error: function `InstantiatedCppPtr` could not be bound
-//   Return type is not supported: Unsupported type 'CppPtr<int, true, 123>': Failed to create bindings for template specialization type CppPtr<int, true, 123>: Unsupported template argument kind: Integral
-
-// error: struct `CppPtr` could not be bound
-//   Unsupported template argument kind: Integral
-
 mod detail {
     #[allow(unused_imports)]
     use super::*;
