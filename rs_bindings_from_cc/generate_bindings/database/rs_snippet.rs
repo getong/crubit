@@ -2181,6 +2181,9 @@ mod tests {
                 enclosing_item_id: None,
                 must_bind: false,
                 detected_formatter: false,
+                deprecated: None,
+                doc_comment: None,
+                nodiscard: None,
             }),
             crate_path: make_crate_path(),
         };
@@ -2233,6 +2236,7 @@ mod tests {
                 source_loc: "some_file.h:123".into(),
                 enclosing_item_id: None,
                 must_bind: false,
+                deprecated: None,
             }),
             underlying_type: Rc::new(make_incomplete_record()),
             crate_path: make_crate_path(),

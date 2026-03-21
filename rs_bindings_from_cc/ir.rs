@@ -954,6 +954,11 @@ pub struct Field {
     // TODO(kinuko): Consider removing this, it is a duplicate of the same information
     // in `Record`.
     pub is_inheritable: bool,
+
+    /// The `[[deprecated("...")]]` string. If `[[deprecated]]`, then the empty
+    /// string is used.
+    #[serde(default)]
+    pub deprecated: Option<Rc<str>>,
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Deserialize)]
@@ -1205,6 +1210,10 @@ pub struct Record {
     #[serde(default)]
     pub lifetime_inputs: Vec<Rc<str>>,
     pub detected_formatter: bool,
+    /// The `[[deprecated("...")]]` string. If `[[deprecated]]`, then the empty
+    /// string is used.
+    #[serde(default)]
+    pub deprecated: Option<Rc<str>>,
 }
 
 impl GenericItem for Record {
@@ -1344,6 +1353,12 @@ pub struct Constant {
     #[serde(rename(deserialize = "type"))]
     pub type_: CcType,
     pub must_bind: bool,
+    /// The `[[deprecated("...")]]` string. If `[[deprecated]]`, then the empty
+    /// string is used.
+    #[serde(default)]
+    pub deprecated: Option<Rc<str>>,
+    #[serde(default)]
+    pub doc_comment: Option<Rc<str>>,
 }
 
 impl GenericItem for Constant {
@@ -1386,6 +1401,12 @@ pub struct GlobalVar {
     #[serde(rename(deserialize = "type"))]
     pub type_: CcType,
     pub must_bind: bool,
+    /// The `[[deprecated("...")]]` string. If `[[deprecated]]`, then the empty
+    /// string is used.
+    #[serde(default)]
+    pub deprecated: Option<Rc<str>>,
+    #[serde(default)]
+    pub doc_comment: Option<Rc<str>>,
 }
 
 impl GenericItem for GlobalVar {
@@ -1433,6 +1454,16 @@ pub struct Enum {
     pub enclosing_item_id: Option<ItemId>,
     pub must_bind: bool,
     pub detected_formatter: bool,
+    /// The `[[nodiscard("...")]]` string. If `[[nodiscard]]`, then the empty
+    /// string is used.
+    #[serde(default)]
+    pub nodiscard: Option<Rc<str>>,
+    /// The `[[deprecated("...")]]` string. If `[[deprecated]]`, then the empty
+    /// string is used.
+    #[serde(default)]
+    pub deprecated: Option<Rc<str>>,
+    #[serde(default)]
+    pub doc_comment: Option<Rc<str>>,
 }
 
 impl GenericItem for Enum {
@@ -1466,6 +1497,12 @@ pub struct Enumerator {
     pub value: IntegerConstant,
     /// A human-readable list of attributes that Crubit doesn't understand.
     pub unknown_attr: Option<Rc<str>>,
+    /// The `[[deprecated("...")]]` string. If `[[deprecated]]`, then the empty
+    /// string is used.
+    #[serde(default)]
+    pub deprecated: Option<Rc<str>>,
+    #[serde(default)]
+    pub doc_comment: Option<Rc<str>>,
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Deserialize)]
@@ -1483,6 +1520,10 @@ pub struct TypeAlias {
     pub source_loc: Rc<str>,
     pub enclosing_item_id: Option<ItemId>,
     pub must_bind: bool,
+    /// The `[[deprecated("...")]]` string. If `[[deprecated]]`, then the empty
+    /// string is used.
+    #[serde(default)]
+    pub deprecated: Option<Rc<str>>,
 }
 
 impl GenericItem for TypeAlias {
@@ -1728,6 +1769,12 @@ pub struct Namespace {
     pub enclosing_item_id: Option<ItemId>,
     pub is_inline: bool,
     pub must_bind: bool,
+    /// The `[[deprecated("...")]]` string. If `[[deprecated]]`, then the empty
+    /// string is used.
+    #[serde(default)]
+    pub deprecated: Option<Rc<str>>,
+    #[serde(default)]
+    pub doc_comment: Option<Rc<str>>,
 }
 
 impl GenericItem for Namespace {

@@ -1258,6 +1258,7 @@ fn test_typedef() -> Result<()> {
             ...
             enclosing_item_id: None,
             must_bind: false,
+            deprecated: None,
           }
         }
     );
@@ -1276,6 +1277,7 @@ fn test_typedef() -> Result<()> {
             ...
             enclosing_item_id: None,
             must_bind: false,
+            deprecated: None,
           }
         }
     );
@@ -1910,6 +1912,7 @@ fn test_fully_instantiated_template_in_public_field() -> Result<()> {
                        is_no_unique_address: false,
                        is_bitfield: false,
                        is_inheritable: true,
+                       deprecated: None,
                    }], ...
                }
         }
@@ -1957,6 +1960,7 @@ fn test_fully_instantiated_template_in_private_field() -> Result<()> {
                     is_no_unique_address: false,
                     is_bitfield: false,
                     is_inheritable: false,
+                    deprecated: None,
                 }], ...
             }
         }
@@ -2525,6 +2529,7 @@ fn test_record_with_unsupported_field_type() -> Result<()> {
                   is_no_unique_address: false,
                   is_bitfield: false,
                   is_inheritable: false,
+                  deprecated: None,
                }],
                ...
                 size_align: SizeAlign {

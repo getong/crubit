@@ -514,6 +514,8 @@ struct Field {
   bool is_no_unique_address;  // True if the field is [[no_unique_address]].
   bool is_bitfield;           // True if the field is a bitfield.
   bool is_inheritable;        // True if the field is inheritable.
+  // Set if this is [[deprecated]]. If no message was given, will be "".
+  std::optional<std::string> deprecated;
 };
 
 inline std::ostream& operator<<(std::ostream& o, const Field& f) {
@@ -659,6 +661,9 @@ struct Constant {
   std::optional<std::string> unknown_attr;
   std::optional<ItemId> enclosing_item_id;
   bool must_bind = false;
+  // Set if this is [[deprecated]]. If no message was given, will be "".
+  std::optional<std::string> deprecated;
+  std::optional<std::string> doc_comment;
 };
 
 // A template specialization for a template record, containing information
@@ -816,6 +821,9 @@ struct Record {
 
   // Lifetime variable names bound by this record.
   std::vector<std::string> lifetime_inputs;
+
+  // Set if this is [[deprecated]]. If no message was given, will be "".
+  std::optional<std::string> deprecated;
 };
 
 // A forward-declared record (e.g. `struct Foo;`)
@@ -838,6 +846,9 @@ struct Enumerator {
   Identifier identifier;
   IntegerConstant value;
   std::optional<std::string> unknown_attr;
+  // Set if this is [[deprecated]]. If no message was given, will be "".
+  std::optional<std::string> deprecated;
+  std::optional<std::string> doc_comment;
 };
 
 struct Enum {
@@ -855,6 +866,11 @@ struct Enum {
   std::optional<ItemId> enclosing_item_id;
   bool must_bind = false;
   bool detected_formatter = false;
+  // Set if this is [[nodiscard]]. If no message was given, will be "".
+  std::optional<std::string> nodiscard;
+  // Set if this is [[deprecated]]. If no message was given, will be "".
+  std::optional<std::string> deprecated;
+  std::optional<std::string> doc_comment;
 };
 
 struct GlobalVar {
@@ -871,6 +887,9 @@ struct GlobalVar {
   std::optional<std::string> unknown_attr;
   std::optional<ItemId> enclosing_item_id;
   bool must_bind = false;
+  // Set if this is [[deprecated]]. If no message was given, will be "".
+  std::optional<std::string> deprecated;
+  std::optional<std::string> doc_comment;
 };
 
 inline std::ostream& operator<<(std::ostream& o, const Record& r) {
@@ -892,6 +911,8 @@ struct TypeAlias {
   std::string source_loc;
   std::optional<ItemId> enclosing_item_id;
   bool must_bind = false;
+  // Set if this is [[deprecated]]. If no message was given, will be "".
+  std::optional<std::string> deprecated;
 };
 
 inline std::ostream& operator<<(std::ostream& o, const TypeAlias& t) {
@@ -979,6 +1000,9 @@ struct Namespace {
   std::optional<ItemId> enclosing_item_id;
   bool is_inline = false;
   bool must_bind = false;
+  // Set if this is [[deprecated]]. If no message was given, will be "".
+  std::optional<std::string> deprecated;
+  std::optional<std::string> doc_comment;
 };
 
 inline std::ostream& operator<<(std::ostream& o, const Namespace& n) {

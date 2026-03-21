@@ -314,6 +314,14 @@ llvm::json::Value Constant::ToJson() const {
       {"must_bind", must_bind},
   };
 
+  if (deprecated.has_value()) {
+    constant.insert({"deprecated", deprecated.value()});
+  }
+
+  if (doc_comment.has_value()) {
+    constant.insert({"doc_comment", doc_comment.value()});
+  }
+
   return llvm::json::Object{
       {"Constant", std::move(constant)},
   };
@@ -421,7 +429,7 @@ std::ostream& operator<<(std::ostream& o, const AccessSpecifier& access) {
 }
 
 llvm::json::Value Field::ToJson() const {
-  return llvm::json::Object{
+  auto field = llvm::json::Object{
       {"rust_identifier", rust_identifier},
       {"cpp_identifier", cpp_identifier},
       {"doc_comment", doc_comment},
@@ -434,6 +442,10 @@ llvm::json::Value Field::ToJson() const {
       {"is_bitfield", is_bitfield},
       {"is_inheritable", is_inheritable},
   };
+  if (deprecated.has_value()) {
+    field.insert({"deprecated", deprecated.value()});
+  }
+  return field;
 }
 
 llvm::json::Value toJSON(const SpecialMemberFunc& f) {
@@ -715,17 +727,28 @@ llvm::json::Value Record::ToJson() const {
     record.insert({"lifetime_inputs", lifetime_inputs});
   }
 
+  if (deprecated.has_value()) {
+    record.insert({"deprecated", deprecated.value()});
+  }
+
   return llvm::json::Object{
       {"Record", std::move(record)},
   };
 }
 
 llvm::json::Value Enumerator::ToJson() const {
-  return llvm::json::Object{
+  auto enumerator = llvm::json::Object{
       {"identifier", identifier},
       {"value", value},
       {"unknown_attr", unknown_attr},
   };
+  if (deprecated.has_value()) {
+    enumerator.insert({"deprecated", deprecated.value()});
+  }
+  if (doc_comment.has_value()) {
+    enumerator.insert({"doc_comment", doc_comment.value()});
+  }
+  return enumerator;
 }
 
 llvm::json::Value Enum::ToJson() const {
@@ -743,6 +766,18 @@ llvm::json::Value Enum::ToJson() const {
       {"must_bind", must_bind},
       {"detected_formatter", detected_formatter},
   };
+
+  if (deprecated.has_value()) {
+    enum_ir.insert({"deprecated", deprecated.value()});
+  }
+
+  if (nodiscard.has_value()) {
+    enum_ir.insert({"nodiscard", nodiscard.value()});
+  }
+
+  if (doc_comment.has_value()) {
+    enum_ir.insert({"doc_comment", doc_comment.value()});
+  }
 
   return llvm::json::Object{
       {"Enum", std::move(enum_ir)},
@@ -764,6 +799,14 @@ llvm::json::Value GlobalVar::ToJson() const {
       {"must_bind", must_bind},
   };
 
+  if (deprecated.has_value()) {
+    var.insert({"deprecated", deprecated.value()});
+  }
+
+  if (doc_comment.has_value()) {
+    var.insert({"doc_comment", doc_comment.value()});
+  }
+
   return llvm::json::Object{
       {"GlobalVar", std::move(var)},
   };
@@ -781,6 +824,10 @@ llvm::json::Value TypeAlias::ToJson() const {
                                 {"source_loc", source_loc},
                                 {"enclosing_item_id", enclosing_item_id},
                                 {"must_bind", must_bind}};
+
+  if (deprecated.has_value()) {
+    type_alias.insert({"deprecated", deprecated.value()});
+  }
 
   return llvm::json::Object{
       {"TypeAlias", std::move(type_alias)},
@@ -897,6 +944,14 @@ llvm::json::Value Namespace::ToJson() const {
       {"is_inline", is_inline},
       {"must_bind", must_bind},
   };
+
+  if (deprecated.has_value()) {
+    ns.insert({"deprecated", deprecated.value()});
+  }
+
+  if (doc_comment.has_value()) {
+    ns.insert({"doc_comment", doc_comment.value()});
+  }
 
   return llvm::json::Object{
       {"Namespace", std::move(ns)},
