@@ -10,6 +10,7 @@ load("@rules_cc//cc/common:cc_info.bzl", "CcInfo")
 
 # buildifier: disable=bzl-visibility
 load("@rules_rust//rust/private:providers.bzl", "DepVariantInfo")
+
 load(
     "//cc_bindings_from_rs/bazel_support:providers.bzl",
     "CcBindingsFromRustInfo",

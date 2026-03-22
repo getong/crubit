@@ -104,6 +104,7 @@ def generate_bindings(
         "--rustfmt_config_path",
         ctx.file._rustfmt_cfg.path,
     ] + extra_rs_bindings_from_cc_cli_flags
+
     if ctx.attr._generate_error_report[BuildSettingInfo].value:
         error_report_output = ctx.actions.declare_file(crate_name + "_rust_api_error_report.json")
         rs_bindings_from_cc_flags += [
