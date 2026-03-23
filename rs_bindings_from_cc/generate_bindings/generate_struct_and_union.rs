@@ -169,7 +169,6 @@ fn collect_unqualified_member_functions_from_all_bases(
     db: &BindingsGenerator,
     record: &Record,
 ) -> Rc<[Rc<Func>]> {
-    let ir = db.ir();
     record
         .unambiguous_public_bases
         .iter()

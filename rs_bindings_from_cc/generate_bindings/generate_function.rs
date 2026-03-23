@@ -210,7 +210,6 @@ fn is_friend_of_record_not_visible_by_adl(
     param_types: &[RsTypeKind],
 ) -> bool {
     let Some(decl_id) = func.adl_enclosing_record else { return false };
-    let ir = db.ir();
     let adl_enclosing_record = db
         .find_decl::<Rc<Record>>(decl_id)
         .with_context(|| format!("Failed to look up `adl_enclosing_record` of {:?}", func))
