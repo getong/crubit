@@ -56,7 +56,7 @@ def compile_cc(
     # code, because this is used to implement Rust callbacks from C++.
     # TODO(b/468327990): Make this portable in OSS.
     backrefs_flag = []
-    if cc_toolchain.target_gnu_system_name == "x86_64-unknown-linux-gnu":
+    if "linux" in cc_toolchain.target_gnu_system_name:
         backrefs_flag.append("-Wl,--warn-backrefs-exclude=*/{package}/lib{target}-*".format(package = ctx.label.package, target = escape_cpp_target_name(ctx.label.package, ctx.label.name)))
 
     (linking_context, _) = cc_common.create_linking_context_from_compilation_outputs(
