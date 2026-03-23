@@ -2023,7 +2023,6 @@ mod tests {
                 cc_name: "".into(),
                 unique_name: name.clone(),
                 template_args: Vec::new(),
-                template_arg_names: Vec::new(),
                 owning_target: BazelLabel("//new/for/testing".into()),
                 size_align: None,
                 is_same_abi,

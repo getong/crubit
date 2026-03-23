@@ -333,7 +333,6 @@ llvm::json::Value ExistingRustType::ToJson() const {
       {"cc_name", cc_name},
       {"unique_name", unique_name},
       {"template_args", template_args},
-      {"template_arg_names", template_arg_names},
       {"owning_target", owning_target},
       {"is_same_abi", is_same_abi},
       {"id", id},

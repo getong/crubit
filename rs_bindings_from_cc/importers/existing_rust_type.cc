@@ -239,29 +239,6 @@ GetCrubitInternalRustTypeAttr(ImportContext& ictx, const clang::Decl& decl) {
       .format_args = std::move(format_args),
   };
 }
-
-// Gathers all template parameter names for `decl` (if any).
-//
-// `decl` must not be null.
-std::optional<std::vector<std::string>> GetTemplateParameterNames(
-    ImportContext& ictx, const clang::Decl* decl) {
-  const auto* specialization_decl =
-      llvm::dyn_cast_or_null<clang::ClassTemplateSpecializationDecl>(decl);
-  if (!specialization_decl) {
-    return std::nullopt;
-  }
-
-  std::vector<std::string> result;
-  result.reserve(specialization_decl->getTemplateArgs().size());
-  for (const auto* template_param :
-       specialization_decl->getSpecializedTemplate()
-           ->getTemplateParameters()
-           ->asArray()) {
-    result.push_back(template_param->getDeclName().getAsString());
-  }
-  return result;
-}
-
 }  // namespace
 
 std::optional<IR::Item> ExistingRustTypeImporter::Import(
@@ -301,9 +278,6 @@ std::optional<IR::Item> ExistingRustTypeImporter::Import(
   policy.SuppressTagKeyword = true;
   std::string cc_name = cc_qualtype.getAsString(policy);
 
-  std::optional<std::vector<std::string>> type_parameter_names =
-      GetTemplateParameterNames(ictx_, type_decl);
-
   ictx_.MarkAsSuccessfullyImported(type_decl);
 
   std::optional<SizeAlign> size_align;
@@ -318,8 +292,6 @@ std::optional<IR::Item> ExistingRustTypeImporter::Import(
       .cc_name = std::move(cc_name),
       .unique_name = ictx_.GetUniqueName(*type_decl),
       .template_args = std::move(format_args),
-      .template_arg_names =
-          type_parameter_names.value_or(std::vector<std::string>()),
       .owning_target = ictx_.GetOwningTarget(type_decl),
       .size_align = std::move(size_align),
       .is_same_abi = *is_same_abi,

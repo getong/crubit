@@ -787,8 +787,13 @@ fn test_crubit_internal_rust_type_annotation() {
 fn test_crubit_internal_rust_type_annotation_with_template_args() {
     let ir = ir_from_cc(
         r#"
+        namespace crubit::rust_type {
+        template <typename...>
+        struct Args {};
+        }
+
         template <typename T>
-        struct [[clang::annotate("crubit_internal_rust_type", "RustPtr")]]
+        struct [[clang::annotate("crubit_internal_rust_type", "RustPtr", crubit::rust_type::Args<T>())]]
                 CppPtr {
               T* ptr;
         };
@@ -804,7 +809,9 @@ fn test_crubit_internal_rust_type_annotation_with_template_args() {
             ExistingRustType {
                 rs_name: "RustPtr",
                 cc_name: "CppPtr<int>", ...
-                template_arg_names: ["T"], ...
+                template_args: [Type(CcType {
+                  variant: Primitive(Int), ...
+                })], ...
             }
         }
     );

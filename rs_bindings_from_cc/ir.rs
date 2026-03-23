@@ -1850,9 +1850,6 @@ pub struct ExistingRustType {
     /// The template arguments on this instance of the type instantiation (empty is no template
     /// arguments). This list parallels `template_arg_names`.
     pub template_args: Vec<TemplateArg>,
-    /// The names of the template arguments (empty is no template arguments). This list
-    /// parallels `template_args`.
-    pub template_arg_names: Vec<Rc<str>>,
     pub owning_target: BazelLabel,
     pub size_align: Option<SizeAlign>,
     pub is_same_abi: bool,
