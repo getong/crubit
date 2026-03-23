@@ -74,12 +74,12 @@ struct CRUBIT_INTERNAL_RUST_TYPE(
   // No custom `Drop` impl and no custom "drop glue" required
   ~CopyNoDefault() = default;
   CopyNoDefault(CopyNoDefault&&) = default;
-  ::tuple_structs::CopyNoDefault& operator=(CopyNoDefault&&) = default;
+  CopyNoDefault& operator=(CopyNoDefault&&) = default;
 
   // Rust types that are `Copy` get trivial, `default` C++ copy constructor and
   // assignment operator.
   CopyNoDefault(const CopyNoDefault&) = default;
-  ::tuple_structs::CopyNoDefault& operator=(const CopyNoDefault&) = default;
+  CopyNoDefault& operator=(const CopyNoDefault&) = default;
   CopyNoDefault(::crubit::UnsafeRelocateTag, CopyNoDefault&& value) {
     std::memcpy(this, &value, sizeof(value));
   }
@@ -114,8 +114,7 @@ struct CRUBIT_INTERNAL_RUST_TYPE(
   // No custom `Drop` impl and no custom "drop glue" required
   ~DefaultAndCloneNoUnpin() = default;
   DefaultAndCloneNoUnpin(DefaultAndCloneNoUnpin&&) = default;
-  ::tuple_structs::DefaultAndCloneNoUnpin& operator=(DefaultAndCloneNoUnpin&&) =
-      default;
+  DefaultAndCloneNoUnpin& operator=(DefaultAndCloneNoUnpin&&) = default;
 
   // Clone::clone
   DefaultAndCloneNoUnpin(const DefaultAndCloneNoUnpin&);
@@ -151,8 +150,7 @@ struct CRUBIT_INTERNAL_RUST_TYPE(
   // No custom `Drop` impl and no custom "drop glue" required
   ~DefaultNoCopyNoClone() = default;
   DefaultNoCopyNoClone(DefaultNoCopyNoClone&&) = default;
-  ::tuple_structs::DefaultNoCopyNoClone& operator=(DefaultNoCopyNoClone&&) =
-      default;
+  DefaultNoCopyNoClone& operator=(DefaultNoCopyNoClone&&) = default;
 
   // `tuple_structs_golden::DefaultNoCopyNoClone` doesn't implement the `Clone`
   // trait
@@ -220,14 +218,13 @@ struct CRUBIT_INTERNAL_RUST_TYPE(
   // No custom `Drop` impl and no custom "drop glue" required
   ~TupleStructOnePrivateArg() = default;
   TupleStructOnePrivateArg(TupleStructOnePrivateArg&&) = default;
-  ::tuple_structs::TupleStructOnePrivateArg& operator=(
-      TupleStructOnePrivateArg&&) = default;
+  TupleStructOnePrivateArg& operator=(TupleStructOnePrivateArg&&) = default;
 
   // Rust types that are `Copy` get trivial, `default` C++ copy constructor and
   // assignment operator.
   TupleStructOnePrivateArg(const TupleStructOnePrivateArg&) = default;
-  ::tuple_structs::TupleStructOnePrivateArg& operator=(
-      const TupleStructOnePrivateArg&) = default;
+  TupleStructOnePrivateArg& operator=(const TupleStructOnePrivateArg&) =
+      default;
   TupleStructOnePrivateArg(::crubit::UnsafeRelocateTag,
                            TupleStructOnePrivateArg&& value) {
     std::memcpy(this, &value, sizeof(value));
@@ -275,14 +272,12 @@ struct CRUBIT_INTERNAL_RUST_TYPE(
   // No custom `Drop` impl and no custom "drop glue" required
   ~TupleStructOnePublicArg() = default;
   TupleStructOnePublicArg(TupleStructOnePublicArg&&) = default;
-  ::tuple_structs::TupleStructOnePublicArg& operator=(
-      TupleStructOnePublicArg&&) = default;
+  TupleStructOnePublicArg& operator=(TupleStructOnePublicArg&&) = default;
 
   // Rust types that are `Copy` get trivial, `default` C++ copy constructor and
   // assignment operator.
   TupleStructOnePublicArg(const TupleStructOnePublicArg&) = default;
-  ::tuple_structs::TupleStructOnePublicArg& operator=(
-      const TupleStructOnePublicArg&) = default;
+  TupleStructOnePublicArg& operator=(const TupleStructOnePublicArg&) = default;
   TupleStructOnePublicArg(::crubit::UnsafeRelocateTag,
                           TupleStructOnePublicArg&& value) {
     std::memcpy(this, &value, sizeof(value));
@@ -328,14 +323,14 @@ struct
   ~TupleStructOnePublicArgOnePrivateArg() = default;
   TupleStructOnePublicArgOnePrivateArg(TupleStructOnePublicArgOnePrivateArg&&) =
       default;
-  ::tuple_structs::TupleStructOnePublicArgOnePrivateArg& operator=(
+  TupleStructOnePublicArgOnePrivateArg& operator=(
       TupleStructOnePublicArgOnePrivateArg&&) = default;
 
   // Rust types that are `Copy` get trivial, `default` C++ copy constructor and
   // assignment operator.
   TupleStructOnePublicArgOnePrivateArg(
       const TupleStructOnePublicArgOnePrivateArg&) = default;
-  ::tuple_structs::TupleStructOnePublicArgOnePrivateArg& operator=(
+  TupleStructOnePublicArgOnePrivateArg& operator=(
       const TupleStructOnePublicArgOnePrivateArg&) = default;
   TupleStructOnePublicArgOnePrivateArg(
       ::crubit::UnsafeRelocateTag,
@@ -388,14 +383,13 @@ struct CRUBIT_INTERNAL_RUST_TYPE(
   // No custom `Drop` impl and no custom "drop glue" required
   ~TupleStructTwoPrivateArgs() = default;
   TupleStructTwoPrivateArgs(TupleStructTwoPrivateArgs&&) = default;
-  ::tuple_structs::TupleStructTwoPrivateArgs& operator=(
-      TupleStructTwoPrivateArgs&&) = default;
+  TupleStructTwoPrivateArgs& operator=(TupleStructTwoPrivateArgs&&) = default;
 
   // Rust types that are `Copy` get trivial, `default` C++ copy constructor and
   // assignment operator.
   TupleStructTwoPrivateArgs(const TupleStructTwoPrivateArgs&) = default;
-  ::tuple_structs::TupleStructTwoPrivateArgs& operator=(
-      const TupleStructTwoPrivateArgs&) = default;
+  TupleStructTwoPrivateArgs& operator=(const TupleStructTwoPrivateArgs&) =
+      default;
   TupleStructTwoPrivateArgs(::crubit::UnsafeRelocateTag,
                             TupleStructTwoPrivateArgs&& value) {
     std::memcpy(this, &value, sizeof(value));
@@ -455,14 +449,13 @@ struct CRUBIT_INTERNAL_RUST_TYPE(
   // No custom `Drop` impl and no custom "drop glue" required
   ~TupleStructTwoPublicArgs() = default;
   TupleStructTwoPublicArgs(TupleStructTwoPublicArgs&&) = default;
-  ::tuple_structs::TupleStructTwoPublicArgs& operator=(
-      TupleStructTwoPublicArgs&&) = default;
+  TupleStructTwoPublicArgs& operator=(TupleStructTwoPublicArgs&&) = default;
 
   // Rust types that are `Copy` get trivial, `default` C++ copy constructor and
   // assignment operator.
   TupleStructTwoPublicArgs(const TupleStructTwoPublicArgs&) = default;
-  ::tuple_structs::TupleStructTwoPublicArgs& operator=(
-      const TupleStructTwoPublicArgs&) = default;
+  TupleStructTwoPublicArgs& operator=(const TupleStructTwoPublicArgs&) =
+      default;
   TupleStructTwoPublicArgs(::crubit::UnsafeRelocateTag,
                            TupleStructTwoPublicArgs&& value) {
     std::memcpy(this, &value, sizeof(value));
@@ -645,7 +638,7 @@ struct
   ~TupleStructWithDefaultAndCloneNoUnpin() = default;
   TupleStructWithDefaultAndCloneNoUnpin(
       TupleStructWithDefaultAndCloneNoUnpin&&) = default;
-  ::tuple_structs::TupleStructWithDefaultAndCloneNoUnpin& operator=(
+  TupleStructWithDefaultAndCloneNoUnpin& operator=(
       TupleStructWithDefaultAndCloneNoUnpin&&) = default;
 
   // `tuple_structs_golden::TupleStructWithDefaultAndCloneNoUnpin` doesn't
@@ -703,7 +696,7 @@ struct CRUBIT_INTERNAL_RUST_TYPE(
   ~TupleStructWithDefaultNoCopyNoClone() = default;
   TupleStructWithDefaultNoCopyNoClone(TupleStructWithDefaultNoCopyNoClone&&) =
       default;
-  ::tuple_structs::TupleStructWithDefaultNoCopyNoClone& operator=(
+  TupleStructWithDefaultNoCopyNoClone& operator=(
       TupleStructWithDefaultNoCopyNoClone&&) = default;
 
   // `tuple_structs_golden::TupleStructWithDefaultNoCopyNoClone` doesn't
@@ -742,14 +735,14 @@ struct CRUBIT_INTERNAL_RUST_TYPE(
   ~TupleStructWithInvalidArgumentType() = default;
   TupleStructWithInvalidArgumentType(TupleStructWithInvalidArgumentType&&) =
       default;
-  ::tuple_structs::TupleStructWithInvalidArgumentType& operator=(
+  TupleStructWithInvalidArgumentType& operator=(
       TupleStructWithInvalidArgumentType&&) = default;
 
   // Rust types that are `Copy` get trivial, `default` C++ copy constructor and
   // assignment operator.
   TupleStructWithInvalidArgumentType(
       const TupleStructWithInvalidArgumentType&) = default;
-  ::tuple_structs::TupleStructWithInvalidArgumentType& operator=(
+  TupleStructWithInvalidArgumentType& operator=(
       const TupleStructWithInvalidArgumentType&) = default;
   TupleStructWithInvalidArgumentType(
       ::crubit::UnsafeRelocateTag, TupleStructWithInvalidArgumentType&& value) {
@@ -798,8 +791,7 @@ struct CRUBIT_INTERNAL_RUST_TYPE(
   // No custom `Drop` impl and no custom "drop glue" required
   ~TupleStructWithNoDefault() = default;
   TupleStructWithNoDefault(TupleStructWithNoDefault&&) = default;
-  ::tuple_structs::TupleStructWithNoDefault& operator=(
-      TupleStructWithNoDefault&&) = default;
+  TupleStructWithNoDefault& operator=(TupleStructWithNoDefault&&) = default;
 
   // `tuple_structs_golden::TupleStructWithNoDefault` doesn't implement the
   // `Clone` trait
@@ -834,14 +826,14 @@ struct CRUBIT_INTERNAL_RUST_TYPE(
   ~TupleStructWithNonExhaustiveCtor() = default;
   TupleStructWithNonExhaustiveCtor(TupleStructWithNonExhaustiveCtor&&) =
       default;
-  ::tuple_structs::TupleStructWithNonExhaustiveCtor& operator=(
+  TupleStructWithNonExhaustiveCtor& operator=(
       TupleStructWithNonExhaustiveCtor&&) = default;
 
   // Rust types that are `Copy` get trivial, `default` C++ copy constructor and
   // assignment operator.
   TupleStructWithNonExhaustiveCtor(const TupleStructWithNonExhaustiveCtor&) =
       default;
-  ::tuple_structs::TupleStructWithNonExhaustiveCtor& operator=(
+  TupleStructWithNonExhaustiveCtor& operator=(
       const TupleStructWithNonExhaustiveCtor&) = default;
   TupleStructWithNonExhaustiveCtor(::crubit::UnsafeRelocateTag,
                                    TupleStructWithNonExhaustiveCtor&& value) {

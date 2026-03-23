@@ -39,7 +39,7 @@ struct CRUBIT_INTERNAL_RUST_TYPE(
   // No custom `Drop` impl and no custom "drop glue" required
   ~SomeStruct() = default;
   SomeStruct(SomeStruct&&) = default;
-  ::rs_default::derived_impl::SomeStruct& operator=(SomeStruct&&) = default;
+  SomeStruct& operator=(SomeStruct&&) = default;
 
   // `rs_default_golden::derived_impl::SomeStruct` doesn't implement the `Clone`
   // trait
@@ -82,7 +82,7 @@ struct CRUBIT_INTERNAL_RUST_TYPE(
   // No custom `Drop` impl and no custom "drop glue" required
   ~SomeStruct() = default;
   SomeStruct(SomeStruct&&) = default;
-  ::rs_default::explicit_impl::SomeStruct& operator=(SomeStruct&&) = default;
+  SomeStruct& operator=(SomeStruct&&) = default;
 
   // `rs_default_golden::explicit_impl::SomeStruct` doesn't implement the
   // `Clone` trait
@@ -128,8 +128,7 @@ StructWithoutDefault final {
   // No custom `Drop` impl and no custom "drop glue" required
   ~StructWithoutDefault() = default;
   StructWithoutDefault(StructWithoutDefault&&) = default;
-  ::rs_default::field_with_no_default::StructWithoutDefault& operator=(
-      StructWithoutDefault&&) = default;
+  StructWithoutDefault& operator=(StructWithoutDefault&&) = default;
 
   // `rs_default_golden::field_with_no_default::StructWithoutDefault` doesn't
   // implement the `Clone` trait
@@ -164,8 +163,8 @@ StructWithFieldWithNoDefault final {
   // No custom `Drop` impl and no custom "drop glue" required
   ~StructWithFieldWithNoDefault() = default;
   StructWithFieldWithNoDefault(StructWithFieldWithNoDefault&&) = default;
-  ::rs_default::field_with_no_default::StructWithFieldWithNoDefault& operator=(
-      StructWithFieldWithNoDefault&&) = default;
+  StructWithFieldWithNoDefault& operator=(StructWithFieldWithNoDefault&&) =
+      default;
 
   // `rs_default_golden::field_with_no_default::StructWithFieldWithNoDefault`
   // doesn't implement the `Clone` trait
@@ -212,7 +211,7 @@ struct CRUBIT_INTERNAL_RUST_TYPE(
   // No custom `Drop` impl and no custom "drop glue" required
   ~SomeStruct() = default;
   SomeStruct(SomeStruct&&) = default;
-  ::rs_default::no_impl::SomeStruct& operator=(SomeStruct&&) = default;
+  SomeStruct& operator=(SomeStruct&&) = default;
 
   // `rs_default_golden::no_impl::SomeStruct` doesn't implement the `Clone`
   // trait
@@ -250,8 +249,7 @@ struct CRUBIT_INTERNAL_RUST_TYPE(
   // No custom `Drop` impl and no custom "drop glue" required
   ~SomeStruct() = default;
   SomeStruct(SomeStruct&&) = default;
-  ::rs_default::transparent_struct::SomeStruct& operator=(SomeStruct&&) =
-      default;
+  SomeStruct& operator=(SomeStruct&&) = default;
 
   // `rs_default_golden::transparent_struct::SomeStruct` doesn't implement the
   // `Clone` trait

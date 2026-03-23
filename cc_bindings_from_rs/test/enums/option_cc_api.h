@@ -43,7 +43,7 @@ struct CRUBIT_INTERNAL_RUST_TYPE(":: option_golden :: CloneNoDefault") alignas(
   // No custom `Drop` impl and no custom "drop glue" required
   ~CloneNoDefault() = default;
   CloneNoDefault(CloneNoDefault&&) = default;
-  ::option::CloneNoDefault& operator=(CloneNoDefault&&) = default;
+  CloneNoDefault& operator=(CloneNoDefault&&) = default;
 
   // Clone::clone
   CloneNoDefault(const CloneNoDefault&);
@@ -75,12 +75,12 @@ struct CRUBIT_INTERNAL_RUST_TYPE(":: option_golden :: CopyNoDefault") alignas(1)
   // No custom `Drop` impl and no custom "drop glue" required
   ~CopyNoDefault() = default;
   CopyNoDefault(CopyNoDefault&&) = default;
-  ::option::CopyNoDefault& operator=(CopyNoDefault&&) = default;
+  CopyNoDefault& operator=(CopyNoDefault&&) = default;
 
   // Rust types that are `Copy` get trivial, `default` C++ copy constructor and
   // assignment operator.
   CopyNoDefault(const CopyNoDefault&) = default;
-  ::option::CopyNoDefault& operator=(const CopyNoDefault&) = default;
+  CopyNoDefault& operator=(const CopyNoDefault&) = default;
   CopyNoDefault(::crubit::UnsafeRelocateTag, CopyNoDefault&& value) {
     std::memcpy(this, &value, sizeof(value));
   }
@@ -197,7 +197,7 @@ struct CRUBIT_INTERNAL_RUST_TYPE(":: option_golden :: NonMaxU8") alignas(1)
   // No custom `Drop` impl and no custom "drop glue" required
   ~NonMaxU8() = default;
   NonMaxU8(NonMaxU8&&) = default;
-  ::option::NonMaxU8& operator=(NonMaxU8&&) = default;
+  NonMaxU8& operator=(NonMaxU8&&) = default;
 
   // `option_golden::NonMaxU8` doesn't implement the `Clone` trait
   NonMaxU8(const NonMaxU8&) = delete;
@@ -236,7 +236,7 @@ struct CRUBIT_INTERNAL_RUST_TYPE(":: option_golden :: OptZst") alignas(1)
   // No custom `Drop` impl and no custom "drop glue" required
   ~OptZst() = default;
   OptZst(OptZst&&) = default;
-  ::option::OptZst& operator=(OptZst&&) = default;
+  OptZst& operator=(OptZst&&) = default;
 
   // `option_golden::OptZst` doesn't implement the `Clone` trait
   OptZst(const OptZst&) = delete;
@@ -279,7 +279,7 @@ struct alignas(1) CRUBIT_INTERNAL_RUST_TYPE(
   rs_std::Option<::option::CloneNoDefault>& operator=(const Option&);
 
   Option(Option&&) = default;
-  rs_std::Option<::option::CloneNoDefault>& operator=(Option&&) = default;
+  Option& operator=(Option&&) = default;
 
   Option(::crubit::UnsafeRelocateTag, Option&& value) {
     std::memcpy(this, &value, sizeof(value));
@@ -324,7 +324,7 @@ OptCloneNoDefault final {
   // No custom `Drop` impl and no custom "drop glue" required
   ~OptCloneNoDefault() = default;
   OptCloneNoDefault(OptCloneNoDefault&&) = default;
-  ::option::OptCloneNoDefault& operator=(OptCloneNoDefault&&) = default;
+  OptCloneNoDefault& operator=(OptCloneNoDefault&&) = default;
 
   // Clone::clone
   OptCloneNoDefault(const OptCloneNoDefault&);
@@ -362,9 +362,9 @@ struct alignas(1) CRUBIT_INTERNAL_RUST_TYPE(
   // Rust types that are `Copy` get trivial, `default` C++ copy constructor and
   // assignment operator.
   Option(const Option&) = default;
-  rs_std::Option<::option::CopyNoDefault>& operator=(const Option&) = default;
+  Option& operator=(const Option&) = default;
   Option(Option&&) = default;
-  rs_std::Option<::option::CopyNoDefault>& operator=(Option&&) = default;
+  Option& operator=(Option&&) = default;
 
   Option(::crubit::UnsafeRelocateTag, Option&& value) {
     std::memcpy(this, &value, sizeof(value));
@@ -409,12 +409,12 @@ OptCopyNoDefault final {
   // No custom `Drop` impl and no custom "drop glue" required
   ~OptCopyNoDefault() = default;
   OptCopyNoDefault(OptCopyNoDefault&&) = default;
-  ::option::OptCopyNoDefault& operator=(OptCopyNoDefault&&) = default;
+  OptCopyNoDefault& operator=(OptCopyNoDefault&&) = default;
 
   // Rust types that are `Copy` get trivial, `default` C++ copy constructor and
   // assignment operator.
   OptCopyNoDefault(const OptCopyNoDefault&) = default;
-  ::option::OptCopyNoDefault& operator=(const OptCopyNoDefault&) = default;
+  OptCopyNoDefault& operator=(const OptCopyNoDefault&) = default;
   OptCopyNoDefault(::crubit::UnsafeRelocateTag, OptCopyNoDefault&& value) {
     std::memcpy(this, &value, sizeof(value));
   }
@@ -620,7 +620,7 @@ struct alignas(1) CRUBIT_INTERNAL_RUST_TYPE(
   Option(const Option&) = delete;
   Option& operator=(const Option&) = delete;
   Option(Option&&) = default;
-  rs_std::Option<::option::HasOptions>& operator=(Option&&) = default;
+  Option& operator=(Option&&) = default;
 
   Option(::crubit::UnsafeRelocateTag, Option&& value) {
     std::memcpy(this, &value, sizeof(value));
@@ -662,7 +662,7 @@ struct alignas(1) CRUBIT_INTERNAL_RUST_TYPE(
   Option(const Option&) = delete;
   Option& operator=(const Option&) = delete;
   Option(Option&&) = default;
-  rs_std::Option<::option::NonMaxU8>& operator=(Option&&) = default;
+  Option& operator=(Option&&) = default;
 
   Option(::crubit::UnsafeRelocateTag, Option&& value) {
     std::memcpy(this, &value, sizeof(value));
@@ -704,8 +704,7 @@ struct alignas(1) CRUBIT_INTERNAL_RUST_TYPE(
   Option(const Option&) = delete;
   Option& operator=(const Option&) = delete;
   Option(Option&&) = default;
-  rs_std::Option<rs_std::Option<::option::NonMaxU8>>& operator=(Option&&) =
-      default;
+  Option& operator=(Option&&) = default;
 
   Option(::crubit::UnsafeRelocateTag, Option&& value) {
     std::memcpy(this, &value, sizeof(value));
@@ -747,9 +746,9 @@ struct alignas(1) CRUBIT_INTERNAL_RUST_TYPE(
   // Rust types that are `Copy` get trivial, `default` C++ copy constructor and
   // assignment operator.
   Option(const Option&) = default;
-  rs_std::Option<std::uint8_t>& operator=(const Option&) = default;
+  Option& operator=(const Option&) = default;
   Option(Option&&) = default;
-  rs_std::Option<std::uint8_t>& operator=(Option&&) = default;
+  Option& operator=(Option&&) = default;
 
   Option(::crubit::UnsafeRelocateTag, Option&& value) {
     std::memcpy(this, &value, sizeof(value));
@@ -758,6 +757,9 @@ struct alignas(1) CRUBIT_INTERNAL_RUST_TYPE(
 
   constexpr explicit Option(std::nullopt_t) noexcept;
   constexpr Option& operator=(std::nullopt_t) noexcept;
+
+  Option(std::uint8_t&& value) noexcept;
+  Option& operator=(std::uint8_t&& value) noexcept;
 
   explicit Option(std::optional<std::uint8_t>&& value) noexcept;
   Option& operator=(std::optional<std::uint8_t>&& value) noexcept;
@@ -790,7 +792,7 @@ struct CRUBIT_INTERNAL_RUST_TYPE(":: option_golden :: HasOptions") alignas(1)
   // No custom `Drop` impl and no custom "drop glue" required
   ~HasOptions() = default;
   HasOptions(HasOptions&&) = default;
-  ::option::HasOptions& operator=(HasOptions&&) = default;
+  HasOptions& operator=(HasOptions&&) = default;
 
   // `option_golden::HasOptions` doesn't implement the `Clone` trait
   HasOptions(const HasOptions&) = delete;
@@ -847,7 +849,7 @@ struct CRUBIT_INTERNAL_RUST_TYPE(":: option_golden :: HasHasOptions") alignas(1)
   // No custom `Drop` impl and no custom "drop glue" required
   ~HasHasOptions() = default;
   HasHasOptions(HasHasOptions&&) = default;
-  ::option::HasHasOptions& operator=(HasHasOptions&&) = default;
+  HasHasOptions& operator=(HasHasOptions&&) = default;
 
   // `option_golden::HasHasOptions` doesn't implement the `Clone` trait
   HasHasOptions(const HasHasOptions&) = delete;
@@ -1298,23 +1300,23 @@ static_assert(std::is_trivially_move_constructible_v<
 static_assert(std::is_trivially_move_assignable_v<
               rs_std::Option<::option::CloneNoDefault>>);
 inline constexpr rs_std::Option<::option::CloneNoDefault>::Option() {
-  this->set_tag(0);
+  set_tag(0);
 }
 inline constexpr rs_std::Option<::option::CloneNoDefault>::Option(
     std::nullopt_t) noexcept {
-  this->set_tag(0);
+  set_tag(0);
 }
 inline constexpr rs_std::Option<::option::CloneNoDefault>&
 rs_std::Option<::option::CloneNoDefault>::operator=(std::nullopt_t) noexcept {
   if (tag() != 0) {
     std::destroy_at(reinterpret_cast<::option::CloneNoDefault*>(storage_ + 1));
   }
-  this->set_tag(0);
+  set_tag(0);
   return *this;
 }
 inline rs_std::Option<::option::CloneNoDefault>::Option(
     ::option::CloneNoDefault&& value) noexcept {
-  this->set_tag(1);
+  set_tag(1);
   std::construct_at(reinterpret_cast<::option::CloneNoDefault*>(storage_ + 1),
                     std::move(value));
 }
@@ -1325,7 +1327,7 @@ rs_std::Option<::option::CloneNoDefault>::operator=(
     *reinterpret_cast<::option::CloneNoDefault*>(storage_ + 1) =
         std::move(value);
   } else {
-    this->set_tag(1);
+    set_tag(1);
     std::construct_at(reinterpret_cast<::option::CloneNoDefault*>(storage_ + 1),
                       std::move(value));
   }
@@ -1334,13 +1336,13 @@ rs_std::Option<::option::CloneNoDefault>::operator=(
 inline rs_std::Option<::option::CloneNoDefault>::Option(
     std::optional<::option::CloneNoDefault>&& value) noexcept {
   if (value.has_value()) {
-    this->set_tag(1);
+    set_tag(1);
     ::option::CloneNoDefault* some =
         reinterpret_cast<::option::CloneNoDefault*>(storage_ + 1);
     *some = std::move(value.value());
     std::construct_at(&value, std::nullopt);
   } else {
-    this->set_tag(0);
+    set_tag(0);
   }
 }
 inline rs_std::Option<::option::CloneNoDefault>&
@@ -1350,20 +1352,20 @@ rs_std::Option<::option::CloneNoDefault>::operator=(
     std::destroy_at(reinterpret_cast<::option::CloneNoDefault*>(storage_ + 1));
   }
   if (value.has_value()) {
-    this->set_tag(1);
+    set_tag(1);
     ::option::CloneNoDefault* some =
         reinterpret_cast<::option::CloneNoDefault*>(storage_ + 1);
     *some = std::move(value.value());
     std::construct_at(&value, std::nullopt);
   } else {
-    this->set_tag(0);
+    set_tag(0);
   }
   return *this;
 }
 template <typename... Args>
 inline rs_std::Option<::option::CloneNoDefault>::Option(
     std::in_place_t, Args&&... args) noexcept {
-  this->set_tag(1);
+  set_tag(1);
   std::construct_at(reinterpret_cast<::option::CloneNoDefault*>(storage_ + 1),
                     std::forward<Args>(args)...);
 }
@@ -1378,7 +1380,7 @@ inline rs_std::Option<::option::CloneNoDefault>::operator std::optional<
       rs_std::Option<::option::CloneNoDefault>* _value;
       DeferSetTagNone(rs_std::Option<::option::CloneNoDefault>* self)
           : _value(self) {}
-      ~DeferSetTagNone() { this->set_tag(0); }
+      ~DeferSetTagNone() { set_tag(0); }
 
      private:
       void set_tag(std::uint8_t tag) { _value->set_tag(tag); }
@@ -1395,7 +1397,7 @@ inline constexpr std::uint8_t rs_std::Option<::option::CloneNoDefault>::tag()
     const& noexcept {
   std::array<unsigned char, sizeof(std::uint8_t)> __bytes = {};
   for (std::size_t i = 0; i < sizeof(std::uint8_t); ++i) {
-    __bytes[i] = this->storage_[0 + i];
+    __bytes[i] = storage_[0 + i];
   }
   return std::bit_cast<std::uint8_t>(__bytes);
 }
@@ -1404,7 +1406,7 @@ inline constexpr void rs_std::Option<::option::CloneNoDefault>::set_tag(
   auto __bytes =
       std::bit_cast<std::array<unsigned char, sizeof(std::uint8_t)>>(tag);
   for (std::size_t i = 0; i < sizeof(std::uint8_t); ++i) {
-    this->storage_[0 + i] = __bytes[i];
+    storage_[0 + i] = __bytes[i];
   }
 }
 #endif
@@ -1420,23 +1422,23 @@ static_assert(std::is_trivially_move_constructible_v<
 static_assert(std::is_trivially_move_assignable_v<
               rs_std::Option<::option::CopyNoDefault>>);
 inline constexpr rs_std::Option<::option::CopyNoDefault>::Option() {
-  this->set_tag(0);
+  set_tag(0);
 }
 inline constexpr rs_std::Option<::option::CopyNoDefault>::Option(
     std::nullopt_t) noexcept {
-  this->set_tag(0);
+  set_tag(0);
 }
 inline constexpr rs_std::Option<::option::CopyNoDefault>&
 rs_std::Option<::option::CopyNoDefault>::operator=(std::nullopt_t) noexcept {
   if (tag() != 0) {
     std::destroy_at(reinterpret_cast<::option::CopyNoDefault*>(storage_ + 1));
   }
-  this->set_tag(0);
+  set_tag(0);
   return *this;
 }
 inline rs_std::Option<::option::CopyNoDefault>::Option(
     ::option::CopyNoDefault&& value) noexcept {
-  this->set_tag(1);
+  set_tag(1);
   std::construct_at(reinterpret_cast<::option::CopyNoDefault*>(storage_ + 1),
                     std::move(value));
 }
@@ -1447,7 +1449,7 @@ rs_std::Option<::option::CopyNoDefault>::operator=(
     *reinterpret_cast<::option::CopyNoDefault*>(storage_ + 1) =
         std::move(value);
   } else {
-    this->set_tag(1);
+    set_tag(1);
     std::construct_at(reinterpret_cast<::option::CopyNoDefault*>(storage_ + 1),
                       std::move(value));
   }
@@ -1456,13 +1458,13 @@ rs_std::Option<::option::CopyNoDefault>::operator=(
 inline rs_std::Option<::option::CopyNoDefault>::Option(
     std::optional<::option::CopyNoDefault>&& value) noexcept {
   if (value.has_value()) {
-    this->set_tag(1);
+    set_tag(1);
     ::option::CopyNoDefault* some =
         reinterpret_cast<::option::CopyNoDefault*>(storage_ + 1);
     *some = std::move(value.value());
     std::construct_at(&value, std::nullopt);
   } else {
-    this->set_tag(0);
+    set_tag(0);
   }
 }
 inline rs_std::Option<::option::CopyNoDefault>&
@@ -1472,20 +1474,20 @@ rs_std::Option<::option::CopyNoDefault>::operator=(
     std::destroy_at(reinterpret_cast<::option::CopyNoDefault*>(storage_ + 1));
   }
   if (value.has_value()) {
-    this->set_tag(1);
+    set_tag(1);
     ::option::CopyNoDefault* some =
         reinterpret_cast<::option::CopyNoDefault*>(storage_ + 1);
     *some = std::move(value.value());
     std::construct_at(&value, std::nullopt);
   } else {
-    this->set_tag(0);
+    set_tag(0);
   }
   return *this;
 }
 template <typename... Args>
 inline rs_std::Option<::option::CopyNoDefault>::Option(
     std::in_place_t, Args&&... args) noexcept {
-  this->set_tag(1);
+  set_tag(1);
   std::construct_at(reinterpret_cast<::option::CopyNoDefault*>(storage_ + 1),
                     std::forward<Args>(args)...);
 }
@@ -1500,7 +1502,7 @@ inline rs_std::Option<::option::CopyNoDefault>::operator std::optional<
       rs_std::Option<::option::CopyNoDefault>* _value;
       DeferSetTagNone(rs_std::Option<::option::CopyNoDefault>* self)
           : _value(self) {}
-      ~DeferSetTagNone() { this->set_tag(0); }
+      ~DeferSetTagNone() { set_tag(0); }
 
      private:
       void set_tag(std::uint8_t tag) { _value->set_tag(tag); }
@@ -1517,7 +1519,7 @@ inline constexpr std::uint8_t rs_std::Option<::option::CopyNoDefault>::tag()
     const& noexcept {
   std::array<unsigned char, sizeof(std::uint8_t)> __bytes = {};
   for (std::size_t i = 0; i < sizeof(std::uint8_t); ++i) {
-    __bytes[i] = this->storage_[0 + i];
+    __bytes[i] = storage_[0 + i];
   }
   return std::bit_cast<std::uint8_t>(__bytes);
 }
@@ -1526,7 +1528,7 @@ inline constexpr void rs_std::Option<::option::CopyNoDefault>::set_tag(
   auto __bytes =
       std::bit_cast<std::array<unsigned char, sizeof(std::uint8_t)>>(tag);
   for (std::size_t i = 0; i < sizeof(std::uint8_t); ++i) {
-    this->storage_[0 + i] = __bytes[i];
+    storage_[0 + i] = __bytes[i];
   }
 }
 #endif
@@ -1542,18 +1544,18 @@ rs_std::Option<::option::HasDefault>::operator=(Option&& other) {
   return *this;
 }
 inline constexpr rs_std::Option<::option::HasDefault>::Option() {
-  this->set_tag(UINT64_C(9223372036854775808));
+  set_tag(UINT64_C(9223372036854775808));
 }
 inline constexpr rs_std::Option<::option::HasDefault>::Option(
     std::nullopt_t) noexcept {
-  this->set_tag(UINT64_C(9223372036854775808));
+  set_tag(UINT64_C(9223372036854775808));
 }
 inline constexpr rs_std::Option<::option::HasDefault>&
 rs_std::Option<::option::HasDefault>::operator=(std::nullopt_t) noexcept {
   if (tag() != UINT64_C(9223372036854775808)) {
     std::destroy_at(reinterpret_cast<::option::HasDefault*>(storage_));
   }
-  this->set_tag(UINT64_C(9223372036854775808));
+  set_tag(UINT64_C(9223372036854775808));
   return *this;
 }
 inline rs_std::Option<::option::HasDefault>::Option(
@@ -1579,7 +1581,7 @@ inline rs_std::Option<::option::HasDefault>::Option(
     *some = std::move(value.value());
     std::construct_at(&value, std::nullopt);
   } else {
-    this->set_tag(UINT64_C(9223372036854775808));
+    set_tag(UINT64_C(9223372036854775808));
   }
 }
 inline rs_std::Option<::option::HasDefault>&
@@ -1594,7 +1596,7 @@ rs_std::Option<::option::HasDefault>::operator=(
     *some = std::move(value.value());
     std::construct_at(&value, std::nullopt);
   } else {
-    this->set_tag(UINT64_C(9223372036854775808));
+    set_tag(UINT64_C(9223372036854775808));
   }
   return *this;
 }
@@ -1618,7 +1620,7 @@ inline rs_std::Option<::option::HasDefault>::operator std::optional<
       rs_std::Option<::option::HasDefault>* _value;
       DeferSetTagNone(rs_std::Option<::option::HasDefault>* self)
           : _value(self) {}
-      ~DeferSetTagNone() { this->set_tag(UINT64_C(9223372036854775808)); }
+      ~DeferSetTagNone() { set_tag(UINT64_C(9223372036854775808)); }
 
      private:
       void set_tag(std::uint64_t tag) { _value->set_tag(tag); }
@@ -1635,7 +1637,7 @@ inline constexpr std::uint64_t rs_std::Option<::option::HasDefault>::tag()
     const& noexcept {
   std::array<unsigned char, sizeof(std::uint64_t)> __bytes = {};
   for (std::size_t i = 0; i < sizeof(std::uint64_t); ++i) {
-    __bytes[i] = this->storage_[0 + i];
+    __bytes[i] = storage_[0 + i];
   }
   return std::bit_cast<std::uint64_t>(__bytes);
 }
@@ -1644,7 +1646,7 @@ inline constexpr void rs_std::Option<::option::HasDefault>::set_tag(
   auto __bytes =
       std::bit_cast<std::array<unsigned char, sizeof(std::uint64_t)>>(tag);
   for (std::size_t i = 0; i < sizeof(std::uint64_t); ++i) {
-    this->storage_[0 + i] = __bytes[i];
+    storage_[0 + i] = __bytes[i];
   }
 }
 #endif
@@ -1661,18 +1663,18 @@ rs_std::Option<::option::HasNoDefault>::operator=(Option&& other) {
   return *this;
 }
 inline constexpr rs_std::Option<::option::HasNoDefault>::Option() {
-  this->set_tag(UINT64_C(9223372036854775808));
+  set_tag(UINT64_C(9223372036854775808));
 }
 inline constexpr rs_std::Option<::option::HasNoDefault>::Option(
     std::nullopt_t) noexcept {
-  this->set_tag(UINT64_C(9223372036854775808));
+  set_tag(UINT64_C(9223372036854775808));
 }
 inline constexpr rs_std::Option<::option::HasNoDefault>&
 rs_std::Option<::option::HasNoDefault>::operator=(std::nullopt_t) noexcept {
   if (tag() != UINT64_C(9223372036854775808)) {
     std::destroy_at(reinterpret_cast<::option::HasNoDefault*>(storage_));
   }
-  this->set_tag(UINT64_C(9223372036854775808));
+  set_tag(UINT64_C(9223372036854775808));
   return *this;
 }
 inline rs_std::Option<::option::HasNoDefault>::Option(
@@ -1683,7 +1685,7 @@ inline rs_std::Option<::option::HasNoDefault>::Option(
     std::construct_at(some, crubit::UnsafeRelocateTag{}, std::move(*value));
     std::construct_at(&value, std::nullopt);
   } else {
-    this->set_tag(UINT64_C(9223372036854775808));
+    set_tag(UINT64_C(9223372036854775808));
   }
 }
 inline rs_std::Option<::option::HasNoDefault>&
@@ -1698,7 +1700,7 @@ rs_std::Option<::option::HasNoDefault>::operator=(
     std::construct_at(some, crubit::UnsafeRelocateTag{}, std::move(*value));
     std::construct_at(&value, std::nullopt);
   } else {
-    this->set_tag(UINT64_C(9223372036854775808));
+    set_tag(UINT64_C(9223372036854775808));
   }
   return *this;
 }
@@ -1722,7 +1724,7 @@ inline rs_std::Option<::option::HasNoDefault>::operator std::optional<
       rs_std::Option<::option::HasNoDefault>* _value;
       DeferSetTagNone(rs_std::Option<::option::HasNoDefault>* self)
           : _value(self) {}
-      ~DeferSetTagNone() { this->set_tag(UINT64_C(9223372036854775808)); }
+      ~DeferSetTagNone() { set_tag(UINT64_C(9223372036854775808)); }
 
      private:
       void set_tag(std::uint64_t tag) { _value->set_tag(tag); }
@@ -1739,7 +1741,7 @@ inline constexpr std::uint64_t rs_std::Option<::option::HasNoDefault>::tag()
     const& noexcept {
   std::array<unsigned char, sizeof(std::uint64_t)> __bytes = {};
   for (std::size_t i = 0; i < sizeof(std::uint64_t); ++i) {
-    __bytes[i] = this->storage_[0 + i];
+    __bytes[i] = storage_[0 + i];
   }
   return std::bit_cast<std::uint64_t>(__bytes);
 }
@@ -1748,7 +1750,7 @@ inline constexpr void rs_std::Option<::option::HasNoDefault>::set_tag(
   auto __bytes =
       std::bit_cast<std::array<unsigned char, sizeof(std::uint64_t)>>(tag);
   for (std::size_t i = 0; i < sizeof(std::uint64_t); ++i) {
-    this->storage_[0 + i] = __bytes[i];
+    storage_[0 + i] = __bytes[i];
   }
 }
 #endif
@@ -1759,19 +1761,17 @@ static_assert(std::is_trivially_move_constructible_v<
               rs_std::Option<::option::HasOptions>>);
 static_assert(
     std::is_trivially_move_assignable_v<rs_std::Option<::option::HasOptions>>);
-inline constexpr rs_std::Option<::option::HasOptions>::Option() {
-  this->set_tag(2);
-}
+inline constexpr rs_std::Option<::option::HasOptions>::Option() { set_tag(2); }
 inline constexpr rs_std::Option<::option::HasOptions>::Option(
     std::nullopt_t) noexcept {
-  this->set_tag(2);
+  set_tag(2);
 }
 inline constexpr rs_std::Option<::option::HasOptions>&
 rs_std::Option<::option::HasOptions>::operator=(std::nullopt_t) noexcept {
   if (tag() != 2) {
     std::destroy_at(reinterpret_cast<::option::HasOptions*>(storage_));
   }
-  this->set_tag(2);
+  set_tag(2);
   return *this;
 }
 inline rs_std::Option<::option::HasOptions>::Option(
@@ -1797,7 +1797,7 @@ inline rs_std::Option<::option::HasOptions>::Option(
     *some = std::move(value.value());
     std::construct_at(&value, std::nullopt);
   } else {
-    this->set_tag(2);
+    set_tag(2);
   }
 }
 inline rs_std::Option<::option::HasOptions>&
@@ -1812,7 +1812,7 @@ rs_std::Option<::option::HasOptions>::operator=(
     *some = std::move(value.value());
     std::construct_at(&value, std::nullopt);
   } else {
-    this->set_tag(2);
+    set_tag(2);
   }
   return *this;
 }
@@ -1833,7 +1833,7 @@ inline rs_std::Option<::option::HasOptions>::operator std::optional<
       rs_std::Option<::option::HasOptions>* _value;
       DeferSetTagNone(rs_std::Option<::option::HasOptions>* self)
           : _value(self) {}
-      ~DeferSetTagNone() { this->set_tag(2); }
+      ~DeferSetTagNone() { set_tag(2); }
 
      private:
       void set_tag(std::uint8_t tag) { _value->set_tag(tag); }
@@ -1850,7 +1850,7 @@ inline constexpr std::uint8_t rs_std::Option<::option::HasOptions>::tag()
     const& noexcept {
   std::array<unsigned char, sizeof(std::uint8_t)> __bytes = {};
   for (std::size_t i = 0; i < sizeof(std::uint8_t); ++i) {
-    __bytes[i] = this->storage_[0 + i];
+    __bytes[i] = storage_[0 + i];
   }
   return std::bit_cast<std::uint8_t>(__bytes);
 }
@@ -1859,7 +1859,7 @@ inline constexpr void rs_std::Option<::option::HasOptions>::set_tag(
   auto __bytes =
       std::bit_cast<std::array<unsigned char, sizeof(std::uint8_t)>>(tag);
   for (std::size_t i = 0; i < sizeof(std::uint8_t); ++i) {
-    this->storage_[0 + i] = __bytes[i];
+    storage_[0 + i] = __bytes[i];
   }
 }
 #endif
@@ -1870,19 +1870,17 @@ static_assert(
     std::is_trivially_move_constructible_v<rs_std::Option<::option::NonMaxU8>>);
 static_assert(
     std::is_trivially_move_assignable_v<rs_std::Option<::option::NonMaxU8>>);
-inline constexpr rs_std::Option<::option::NonMaxU8>::Option() {
-  this->set_tag(251);
-}
+inline constexpr rs_std::Option<::option::NonMaxU8>::Option() { set_tag(251); }
 inline constexpr rs_std::Option<::option::NonMaxU8>::Option(
     std::nullopt_t) noexcept {
-  this->set_tag(251);
+  set_tag(251);
 }
 inline constexpr rs_std::Option<::option::NonMaxU8>&
 rs_std::Option<::option::NonMaxU8>::operator=(std::nullopt_t) noexcept {
   if (tag() != 251) {
     std::destroy_at(reinterpret_cast<::option::NonMaxU8*>(storage_));
   }
-  this->set_tag(251);
+  set_tag(251);
   return *this;
 }
 inline rs_std::Option<::option::NonMaxU8>::Option(
@@ -1907,7 +1905,7 @@ inline rs_std::Option<::option::NonMaxU8>::Option(
     *some = std::move(value.value());
     std::construct_at(&value, std::nullopt);
   } else {
-    this->set_tag(251);
+    set_tag(251);
   }
 }
 inline rs_std::Option<::option::NonMaxU8>&
@@ -1921,7 +1919,7 @@ rs_std::Option<::option::NonMaxU8>::operator=(
     *some = std::move(value.value());
     std::construct_at(&value, std::nullopt);
   } else {
-    this->set_tag(251);
+    set_tag(251);
   }
   return *this;
 }
@@ -1942,7 +1940,7 @@ inline rs_std::Option<::option::NonMaxU8>::operator std::optional<
       rs_std::Option<::option::NonMaxU8>* _value;
       DeferSetTagNone(rs_std::Option<::option::NonMaxU8>* self)
           : _value(self) {}
-      ~DeferSetTagNone() { this->set_tag(251); }
+      ~DeferSetTagNone() { set_tag(251); }
 
      private:
       void set_tag(std::uint8_t tag) { _value->set_tag(tag); }
@@ -1959,7 +1957,7 @@ inline constexpr std::uint8_t rs_std::Option<::option::NonMaxU8>::tag()
     const& noexcept {
   std::array<unsigned char, sizeof(std::uint8_t)> __bytes = {};
   for (std::size_t i = 0; i < sizeof(std::uint8_t); ++i) {
-    __bytes[i] = this->storage_[0 + i];
+    __bytes[i] = storage_[0 + i];
   }
   return std::bit_cast<std::uint8_t>(__bytes);
 }
@@ -1968,7 +1966,7 @@ inline constexpr void rs_std::Option<::option::NonMaxU8>::set_tag(
   auto __bytes =
       std::bit_cast<std::array<unsigned char, sizeof(std::uint8_t)>>(tag);
   for (std::size_t i = 0; i < sizeof(std::uint8_t); ++i) {
-    this->storage_[0 + i] = __bytes[i];
+    storage_[0 + i] = __bytes[i];
   }
 }
 #endif
@@ -1980,11 +1978,11 @@ static_assert(std::is_trivially_move_constructible_v<
 static_assert(std::is_trivially_move_assignable_v<
               rs_std::Option<rs_std::Option<::option::NonMaxU8>>>);
 inline constexpr rs_std::Option<rs_std::Option<::option::NonMaxU8>>::Option() {
-  this->set_tag(252);
+  set_tag(252);
 }
 inline constexpr rs_std::Option<rs_std::Option<::option::NonMaxU8>>::Option(
     std::nullopt_t) noexcept {
-  this->set_tag(252);
+  set_tag(252);
 }
 inline constexpr rs_std::Option<rs_std::Option<::option::NonMaxU8>>&
 rs_std::Option<rs_std::Option<::option::NonMaxU8>>::operator=(
@@ -1993,7 +1991,7 @@ rs_std::Option<rs_std::Option<::option::NonMaxU8>>::operator=(
     std::destroy_at(
         reinterpret_cast<rs_std::Option<::option::NonMaxU8>*>(storage_));
   }
-  this->set_tag(252);
+  set_tag(252);
   return *this;
 }
 inline rs_std::Option<rs_std::Option<::option::NonMaxU8>>::Option(
@@ -2023,7 +2021,7 @@ inline rs_std::Option<rs_std::Option<::option::NonMaxU8>>::Option(
     *some = std::move(value.value());
     std::construct_at(&value, std::nullopt);
   } else {
-    this->set_tag(252);
+    set_tag(252);
   }
 }
 inline rs_std::Option<rs_std::Option<::option::NonMaxU8>>&
@@ -2039,7 +2037,7 @@ rs_std::Option<rs_std::Option<::option::NonMaxU8>>::operator=(
     *some = std::move(value.value());
     std::construct_at(&value, std::nullopt);
   } else {
-    this->set_tag(252);
+    set_tag(252);
   }
   return *this;
 }
@@ -2061,7 +2059,7 @@ inline rs_std::Option<rs_std::Option<::option::NonMaxU8>>::operator std::
       rs_std::Option<rs_std::Option<::option::NonMaxU8>>* _value;
       DeferSetTagNone(rs_std::Option<rs_std::Option<::option::NonMaxU8>>* self)
           : _value(self) {}
-      ~DeferSetTagNone() { this->set_tag(252); }
+      ~DeferSetTagNone() { set_tag(252); }
 
      private:
       void set_tag(std::uint8_t tag) { _value->set_tag(tag); }
@@ -2080,7 +2078,7 @@ inline constexpr std::uint8_t
 rs_std::Option<rs_std::Option<::option::NonMaxU8>>::tag() const& noexcept {
   std::array<unsigned char, sizeof(std::uint8_t)> __bytes = {};
   for (std::size_t i = 0; i < sizeof(std::uint8_t); ++i) {
-    __bytes[i] = this->storage_[0 + i];
+    __bytes[i] = storage_[0 + i];
   }
   return std::bit_cast<std::uint8_t>(__bytes);
 }
@@ -2089,7 +2087,7 @@ inline constexpr void rs_std::Option<
   auto __bytes =
       std::bit_cast<std::array<unsigned char, sizeof(std::uint8_t)>>(tag);
   for (std::size_t i = 0; i < sizeof(std::uint8_t); ++i) {
-    this->storage_[0 + i] = __bytes[i];
+    storage_[0 + i] = __bytes[i];
   }
 }
 #endif
@@ -2104,27 +2102,43 @@ static_assert(
     std::is_trivially_move_constructible_v<rs_std::Option<std::uint8_t>>);
 static_assert(
     std::is_trivially_move_assignable_v<rs_std::Option<std::uint8_t>>);
-inline constexpr rs_std::Option<std::uint8_t>::Option() { this->set_tag(0); }
+inline constexpr rs_std::Option<std::uint8_t>::Option() { set_tag(0); }
 inline constexpr rs_std::Option<std::uint8_t>::Option(std::nullopt_t) noexcept {
-  this->set_tag(0);
+  set_tag(0);
 }
 inline constexpr rs_std::Option<std::uint8_t>&
 rs_std::Option<std::uint8_t>::operator=(std::nullopt_t) noexcept {
   if (tag() != 0) {
     std::destroy_at(reinterpret_cast<std::uint8_t*>(storage_ + 1));
   }
-  this->set_tag(0);
+  set_tag(0);
+  return *this;
+}
+inline rs_std::Option<std::uint8_t>::Option(std::uint8_t&& value) noexcept {
+  set_tag(1);
+  std::construct_at(reinterpret_cast<std::uint8_t*>(storage_ + 1),
+                    std::move(value));
+}
+inline rs_std::Option<std::uint8_t>& rs_std::Option<std::uint8_t>::operator=(
+    std::uint8_t&& value) noexcept {
+  if (tag() != 0) {
+    *reinterpret_cast<std::uint8_t*>(storage_ + 1) = std::move(value);
+  } else {
+    set_tag(1);
+    std::construct_at(reinterpret_cast<std::uint8_t*>(storage_ + 1),
+                      std::move(value));
+  }
   return *this;
 }
 inline rs_std::Option<std::uint8_t>::Option(
     std::optional<std::uint8_t>&& value) noexcept {
   if (value.has_value()) {
-    this->set_tag(1);
+    set_tag(1);
     std::uint8_t* some = reinterpret_cast<std::uint8_t*>(storage_ + 1);
-    *some = value.value();
+    *some = std::move(value.value());
     std::construct_at(&value, std::nullopt);
   } else {
-    this->set_tag(0);
+    set_tag(0);
   }
 }
 inline rs_std::Option<std::uint8_t>& rs_std::Option<std::uint8_t>::operator=(
@@ -2133,19 +2147,19 @@ inline rs_std::Option<std::uint8_t>& rs_std::Option<std::uint8_t>::operator=(
     std::destroy_at(reinterpret_cast<std::uint8_t*>(storage_ + 1));
   }
   if (value.has_value()) {
-    this->set_tag(1);
+    set_tag(1);
     std::uint8_t* some = reinterpret_cast<std::uint8_t*>(storage_ + 1);
-    *some = value.value();
+    *some = std::move(value.value());
     std::construct_at(&value, std::nullopt);
   } else {
-    this->set_tag(0);
+    set_tag(0);
   }
   return *this;
 }
 template <typename... Args>
 inline rs_std::Option<std::uint8_t>::Option(std::in_place_t,
                                             Args&&... args) noexcept {
-  this->set_tag(1);
+  set_tag(1);
   std::construct_at(reinterpret_cast<std::uint8_t*>(storage_ + 1),
                     std::forward<Args>(args)...);
 }
@@ -2158,7 +2172,7 @@ inline rs_std::Option<std::uint8_t>::operator std::optional<
     std::uint8_t& value = *reinterpret_cast<std::uint8_t*>(storage_ + 1);
     std::optional<std::uint8_t> return_value(std::move(value));
     std::destroy_at(&value);
-    this->set_tag(0);
+    set_tag(0);
     return return_value;
   }
 }
@@ -2169,7 +2183,7 @@ inline constexpr std::uint8_t rs_std::Option<std::uint8_t>::tag()
     const& noexcept {
   std::array<unsigned char, sizeof(std::uint8_t)> __bytes = {};
   for (std::size_t i = 0; i < sizeof(std::uint8_t); ++i) {
-    __bytes[i] = this->storage_[0 + i];
+    __bytes[i] = storage_[0 + i];
   }
   return std::bit_cast<std::uint8_t>(__bytes);
 }
@@ -2178,7 +2192,7 @@ inline constexpr void rs_std::Option<std::uint8_t>::set_tag(
   auto __bytes =
       std::bit_cast<std::array<unsigned char, sizeof(std::uint8_t)>>(tag);
   for (std::size_t i = 0; i < sizeof(std::uint8_t); ++i) {
-    this->storage_[0 + i] = __bytes[i];
+    storage_[0 + i] = __bytes[i];
   }
 }
 #endif

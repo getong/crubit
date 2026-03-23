@@ -44,8 +44,7 @@ struct CRUBIT_INTERNAL_RUST_TYPE(
   // No custom `Drop` impl and no custom "drop glue" required
   ~StructFloat() = default;
   StructFloat(StructFloat&&) = default;
-  ::structs::abi_classification::StructFloat& operator=(StructFloat&&) =
-      default;
+  StructFloat& operator=(StructFloat&&) = default;
 
   // `structs_golden::abi_classification::StructFloat` doesn't implement the
   // `Clone` trait
@@ -109,8 +108,7 @@ struct CRUBIT_INTERNAL_RUST_TYPE(
   // No custom `Drop` impl and no custom "drop glue" required
   ~StructInteger() = default;
   StructInteger(StructInteger&&) = default;
-  ::structs::abi_classification::StructInteger& operator=(StructInteger&&) =
-      default;
+  StructInteger& operator=(StructInteger&&) = default;
 
   // `structs_golden::abi_classification::StructInteger` doesn't implement the
   // `Clone` trait
@@ -168,8 +166,7 @@ struct CRUBIT_INTERNAL_RUST_TYPE(
   // No custom `Drop` impl and no custom "drop glue" required
   ~StructMemory() = default;
   StructMemory(StructMemory&&) = default;
-  ::structs::abi_classification::StructMemory& operator=(StructMemory&&) =
-      default;
+  StructMemory& operator=(StructMemory&&) = default;
 
   // `structs_golden::abi_classification::StructMemory` doesn't implement the
   // `Clone` trait
@@ -233,7 +230,7 @@ struct CRUBIT_INTERNAL_RUST_TYPE(
   // No custom `Drop` impl and no custom "drop glue" required
   ~Point() = default;
   Point(Point&&) = default;
-  ::structs::default_repr::Point& operator=(Point&&) = default;
+  Point& operator=(Point&&) = default;
 
   // `structs_golden::default_repr::Point` doesn't implement the `Clone` trait
   Point(const Point&) = delete;
@@ -295,7 +292,7 @@ struct CRUBIT_INTERNAL_RUST_TYPE(
   // No custom `Drop` impl and no custom "drop glue" required
   ~SomeStruct() = default;
   SomeStruct(SomeStruct&&) = default;
-  ::structs::interior_mutability::SomeStruct& operator=(SomeStruct&&) = default;
+  SomeStruct& operator=(SomeStruct&&) = default;
 
   // `structs_golden::interior_mutability::SomeStruct` doesn't implement the
   // `Clone` trait
@@ -334,8 +331,7 @@ struct
   // No custom `Drop` impl and no custom "drop glue" required
   ~AField() = default;
   AField(AField&&) = default;
-  ::structs::keyword_named_fields_and_methods::AField& operator=(AField&&) =
-      default;
+  AField& operator=(AField&&) = default;
 
   // `structs_golden::keyword_named_fields_and_methods::AField` doesn't
   // implement the `Clone` trait
@@ -380,8 +376,7 @@ struct CRUBIT_INTERNAL_RUST_TYPE(
   // No custom `Drop` impl and no custom "drop glue" required
   ~SomeStruct() = default;
   SomeStruct(SomeStruct&&) = default;
-  ::structs::nested_ptr_type_mutability_qualifiers::SomeStruct& operator=(
-      SomeStruct&&) = default;
+  SomeStruct& operator=(SomeStruct&&) = default;
 
   // `structs_golden::nested_ptr_type_mutability_qualifiers::SomeStruct` doesn't
   // implement the `Clone` trait
@@ -481,7 +476,7 @@ Point final {
   // No custom `Drop` impl and no custom "drop glue" required
   ~Point() = default;
   Point(Point&&) = default;
-  ::structs::repr_c::Point& operator=(Point&&) = default;
+  Point& operator=(Point&&) = default;
 
   // `structs_golden::repr_c::Point` doesn't implement the `Clone` trait
   Point(const Point&) = delete;
@@ -535,8 +530,7 @@ struct CRUBIT_INTERNAL_RUST_TYPE(
   // No custom `Drop` impl and no custom "drop glue" required
   ~StructFloat() = default;
   StructFloat(StructFloat&&) = default;
-  ::structs::struct_by_float_passing_with_no_cc_definition::StructFloat&
-  operator=(StructFloat&&) = default;
+  StructFloat& operator=(StructFloat&&) = default;
 
   // `structs_golden::struct_by_float_passing_with_no_cc_definition::StructFloat`
   // doesn't implement the `Clone` trait
@@ -604,8 +598,7 @@ struct CRUBIT_INTERNAL_RUST_TYPE(
   // No custom `Drop` impl and no custom "drop glue" required
   ~StructFloat() = default;
   StructFloat(StructFloat&&) = default;
-  ::structs::struct_by_float_passing_with_no_thunk::StructFloat& operator=(
-      StructFloat&&) = default;
+  StructFloat& operator=(StructFloat&&) = default;
 
   // Clone::clone
   StructFloat(const StructFloat&);
@@ -675,7 +668,7 @@ struct CRUBIT_INTERNAL_RUST_TYPE(
   // No custom `Drop` impl and no custom "drop glue" required
   ~SomeStruct() = default;
   SomeStruct(SomeStruct&&) = default;
-  ::structs::unsupported_types::SomeStruct& operator=(SomeStruct&&) = default;
+  SomeStruct& operator=(SomeStruct&&) = default;
 
   // `structs_golden::unsupported_types::SomeStruct` doesn't implement the
   // `Clone` trait
@@ -732,7 +725,7 @@ struct CRUBIT_INTERNAL_RUST_TYPE(
   // No custom `Drop` impl and no custom "drop glue" required
   ~ZstFields() = default;
   ZstFields(ZstFields&&) = default;
-  ::structs::zst_fields::ZstFields& operator=(ZstFields&&) = default;
+  ZstFields& operator=(ZstFields&&) = default;
 
   // `structs_golden::zst_fields::ZstFields` doesn't implement the `Clone` trait
   ZstFields(const ZstFields&) = delete;
