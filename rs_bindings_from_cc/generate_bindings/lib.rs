@@ -1451,7 +1451,7 @@ fn make_rust_abi_path_from_str(
         Some(Ident::new("crate", proc_macro2::Span::call_site()))
     } else {
         start_with_colon2 = true;
-        Some(make_rs_ident(target.target_name()))
+        Some(make_rs_ident(&target.target_name_escaped()))
     };
 
     FullyQualifiedPath {

@@ -1861,7 +1861,7 @@ fn fully_qualify_type<'a>(
         if db.ir().is_current_target(&target) {
             quote! { crate }
         } else {
-            let ident = make_rs_ident(target.target_name());
+            let ident = make_rs_ident(&target.target_name_escaped());
             quote! { :: #ident }
         }
     };
