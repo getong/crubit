@@ -65,7 +65,7 @@ struct ExistingRustTypeFieldTypes final {
 };
 
 template <typename T>
-struct [[clang::annotate("crubit_internal_rust_type", "RustPtr",
+struct [[clang::annotate("crubit_internal_rust_type", "RustPtr<{}>",
                          crubit::rust_type::Args<T>())]] Ptr final {
   T* ptr;
 };
@@ -74,7 +74,7 @@ void AcceptPtrInt(Ptr<int> ptr);
 
 template <typename T, typename U, bool B>
 struct [[clang::annotate(
-    "crubit_internal_rust_type", "RustTypeWithReorderedGenerics",
+    "crubit_internal_rust_type", "RustTypeWithReorderedGenerics<{}, {}, {}>",
     crubit::rust_type::Args<T, U, crubit::rust_type::Const<B>>())]]
 CppTypeWithTemplateArgs final {
   T* t;
@@ -85,7 +85,8 @@ void AcceptCppTypeWithTemplateArgs(
     CppTypeWithTemplateArgs<int, float, true> cpp_type);
 
 template <typename T, typename U>
-struct [[clang::annotate("crubit_internal_rust_type", "RustTypeReordered",
+struct [[clang::annotate("crubit_internal_rust_type",
+                         "RustTypeReordered<{}, {}>",
                          crubit::rust_type::Args<T, U>())]] ConvertPtrs {};
 
 template <typename T, typename U>
@@ -94,13 +95,14 @@ using Reordered = ConvertPtrs<U, T>;
 void AcceptReordered(Reordered<int, float> x);
 
 template <typename T, typename U = int>
-struct [[clang::annotate("crubit_internal_rust_type", "RustTypeWithDefault",
+struct [[clang::annotate("crubit_internal_rust_type",
+                         "RustTypeWithDefault<{}, {}>",
                          crubit::rust_type::Args<T, U>())]] WithDefault {};
 
 void AcceptWithDefault(WithDefault<float> x);
 
 template <typename T>
-struct [[clang::annotate("crubit_internal_rust_type", "MyRustContainer",
+struct [[clang::annotate("crubit_internal_rust_type", "MyRustContainer<{}>",
                          crubit::rust_type::Args<T>())]] MyContainer {};
 
 template <>

@@ -4,7 +4,7 @@
 
 use arc_anyhow::{anyhow, Result};
 use database::code_snippet::BindingsTokens;
-use database::rs_snippet::{Mutability, RsTypeKind};
+use database::rs_snippet::{interpolate_spelled_rust_type, Mutability, RsTypeKind};
 use googletest::{expect_eq, gtest};
 use ir::IR;
 use ir_matchers::assert_ir_matches;
@@ -1441,4 +1441,15 @@ fn test_existing_rust_type_specialized_template_args() -> Result<()> {
         }
     );
     Ok(())
+}
+
+#[gtest]
+fn test_interpolate_spelled_rust_type() {
+    let substs = [Ok(quote! { ::ffi_11::c_int }), Ok(quote! { true })];
+    let input = quote! { Result<{}, {}> };
+    let expected = quote! { Result<::ffi_11::c_int, true> };
+    assert_rs_matches!(
+        interpolate_spelled_rust_type(input, &mut substs.into_iter()).unwrap(),
+        expected
+    );
 }

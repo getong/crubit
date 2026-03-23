@@ -1834,13 +1834,24 @@ impl GenericItem for UseMod {
     }
 }
 
+/// A C++ type annotated with CRUBIT_INTERNAL_RUST_TYPE, indicating that Crubit should use the
+/// existing Rust type instead of generating a new Rust type. Note that this corresponds to concrete
+/// types, meaning non-template types or template instantiations, but not uninstantiated template
+/// declarations.
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ExistingRustType {
+    /// The name of the existing Rust type.
+    /// Note that it may contain interpolated type parameters, like `RustType<{T}>`.
+    /// This means that it's incorrect to directly parse as an Ident.
     pub rs_name: Rc<str>,
     pub cc_name: Rc<str>,
     pub unique_name: Rc<str>,
+    /// The template arguments on this instance of the type instantiation (empty is no template
+    /// arguments). This list parallels `template_arg_names`.
     pub template_args: Vec<TemplateArg>,
+    /// The names of the template arguments (empty is no template arguments). This list
+    /// parallels `template_args`.
     pub template_arg_names: Vec<Rc<str>>,
     pub owning_target: BazelLabel,
     pub size_align: Option<SizeAlign>,

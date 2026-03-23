@@ -6,7 +6,7 @@
 
 use crate::code_snippet::{Feature, Visibility};
 use crate::BindingsGenerator;
-use arc_anyhow::Result;
+use arc_anyhow::{anyhow, Result};
 use code_gen_utils::make_rs_ident;
 use code_gen_utils::NamespaceQualifier;
 use crubit_feature::CrubitFeature;
@@ -14,7 +14,7 @@ use error_report::{bail, ensure};
 use flagset::FlagSet;
 use ir::*;
 use itertools::Itertools;
-use proc_macro2::{Ident, TokenStream};
+use proc_macro2::{Delimiter, Group, Ident, TokenStream, TokenTree};
 use quote::{format_ident, quote, ToTokens};
 use std::collections::HashSet;
 use std::rc::Rc;
@@ -512,15 +512,10 @@ pub enum RsTypeKind {
     /// types by cc_bindings_from_rs.
     ExistingRustType {
         existing_rust_type: Rc<ExistingRustType>,
-        template_args: Rc<[TemplateArg]>,
+        /// How the Rust type should be spelled, after interpolating template arguments.
+        /// This is the stringified TokenStream because TokenStream is not PartialEq + Eq + Hash.
+        rust_type: Rc<str>,
     },
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub enum TemplateArg {
-    Type(RsTypeKind),
-    Int(i64),
-    Bool(bool),
 }
 
 /// Information about how the owned function object may be called.
@@ -859,8 +854,8 @@ impl RsTypeKind {
         Ok(RsTypeKind::Enum { enum_, crate_path })
     }
 
-    fn new_existing_rust_type(
-        db: &BindingsGenerator,
+    fn new_existing_rust_type<'db>(
+        db: impl Deref<Target = BindingsGenerator<'db>> + Copy,
         existing_rust_type: Rc<ExistingRustType>,
     ) -> Result<Self> {
         if existing_rust_type.rs_name.as_ref() == SLICE_REF_NAME_RS {
@@ -870,7 +865,7 @@ impl RsTypeKind {
                     existing_rust_type.template_args.len()
                 );
             };
-            let ir::TemplateArg::Type(inner_cc_type) = template_arg else {
+            let TemplateArg::Type(inner_cc_type) = template_arg else {
                 bail!("SliceRef should have a type as its singular template argument");
             };
 
@@ -878,7 +873,7 @@ impl RsTypeKind {
             ensure!(
                 inner_rs_type_kind.allowed_behind_multi_element_ptr(),
                 "SliceRef pointee type is not allowed behind a multi element pointer: {}",
-                inner_rs_type_kind.display(db),
+                inner_rs_type_kind.display(&db),
             );
 
             return Ok(RsTypeKind::Pointer {
@@ -892,25 +887,42 @@ impl RsTypeKind {
             });
         }
 
-        let template_args = existing_rust_type
-            .template_args
-            .iter()
-            .map(|template_arg| match template_arg {
-                ir::TemplateArg::Type(type_param) => {
+        let uninterpolated_rust_type = fully_qualify_type(
+            db,
+            ir::Item::ExistingRustType(existing_rust_type.clone()),
+            &existing_rust_type.rs_name,
+        );
+
+        let mut iter = existing_rust_type.template_args.iter().map(|subst| {
+            Ok(match subst {
+                TemplateArg::Type(type_param) => {
                     let rs_type_kind = db.rs_type_kind(type_param.clone())?;
                     ensure!(
                         !rs_type_kind.is_bridge_type(),
                         "Type parameter cannot be a bridge type: {}",
-                        rs_type_kind.display(db),
+                        rs_type_kind.display(&db),
                     );
-                    Ok(TemplateArg::Type(rs_type_kind))
+                    rs_type_kind.to_token_stream(db)
                 }
-                ir::TemplateArg::Int(i) => Ok(TemplateArg::Int(*i)),
-                ir::TemplateArg::Bool(b) => Ok(TemplateArg::Bool(*b)),
+                TemplateArg::Int(i) => i.to_token_stream(),
+                TemplateArg::Bool(b) => b.to_token_stream(),
             })
-            .collect::<Result<Rc<[TemplateArg]>>>()?;
+        });
 
-        Ok(RsTypeKind::ExistingRustType { existing_rust_type, template_args })
+        let rust_type = interpolate_spelled_rust_type(uninterpolated_rust_type, &mut iter)
+            .map_err(|e| {
+                anyhow!("Failed to interpolate rust type {}: {e}", existing_rust_type.rs_name)
+            })?;
+
+        let remaining_template_args = iter.collect::<Vec<_>>();
+        if !remaining_template_args.is_empty() {
+            bail!("Unexpected template args: {:?}", remaining_template_args);
+        }
+
+        Ok(RsTypeKind::ExistingRustType {
+            existing_rust_type,
+            rust_type: rust_type.to_string().into(),
+        })
     }
 
     /// Returns true if the type is known to be `Unpin`, false otherwise.
@@ -1529,6 +1541,38 @@ impl RsTypeKind {
     }
 }
 
+/// Recursively interpolates a token stream that contains a spelled out Rust type.
+///
+/// Interpolation variables are spalled with braces, e.g. `MyType<{T}>`. They must contain a single
+/// ident, otherwise an error is returned.
+pub fn interpolate_spelled_rust_type(
+    rust_type: TokenStream,
+    substs: &mut impl Iterator<Item = Result<TokenStream>>,
+) -> Result<TokenStream> {
+    rust_type
+        .into_iter()
+        .map(|tt| -> Result<TokenStream> {
+            let TokenTree::Group(group) = &tt else { return Ok(TokenStream::from(tt)) };
+
+            if group.delimiter() != Delimiter::Brace {
+                return Ok(TokenStream::from(TokenTree::Group(Group::new(
+                    group.delimiter(),
+                    interpolate_spelled_rust_type(group.stream(), substs)?,
+                ))));
+            }
+
+            ensure!(
+                group.stream().is_empty(),
+                "Interpolated arguments cannot be provided inline, found `{:?}`",
+                group.stream()
+            );
+            substs.next().unwrap_or_else(|| {
+                bail!("Not enough interpolated arguments");
+            })
+        })
+        .collect()
+}
+
 /// The classification of how a type should cross the FFI boundary.
 ///
 /// Code that generates functions thunks and impls should match on this type instead of manually
@@ -1820,26 +1864,7 @@ impl RsTypeKind {
                     }
                 }
             }
-            RsTypeKind::ExistingRustType { existing_rust_type, template_args } => {
-                let path = fully_qualify_type(
-                    db,
-                    ir::Item::ExistingRustType(existing_rust_type.clone()),
-                    &existing_rust_type.rs_name,
-                );
-
-                // If there are no template args, then we're done.
-                if template_args.is_empty() {
-                    return path;
-                }
-
-                let template_args_tokens = template_args.iter().map(|t| match t {
-                    TemplateArg::Type(rs_type_kind) => rs_type_kind.to_token_stream(db),
-                    TemplateArg::Int(i) => quote! { #i },
-                    TemplateArg::Bool(b) => quote! { #b },
-                });
-
-                quote! { #path<#(#template_args_tokens),*> }
-            }
+            RsTypeKind::ExistingRustType { rust_type, .. } => rust_type.parse().expect("ExistingRustType.rust_type should parse as a TokenStream because it was constructed from one."),
         }
     }
 }
@@ -1913,24 +1938,16 @@ fn fully_qualify_type_impl(
         return quote! { #prefix #suffix };
     }
 
-    // Otherwise, we assume it's a path.
-    let is_absolute_path = type_expression_suffix.starts_with("::");
-    // If the name starts with "::", then it is an absolute path. In this case, we
-    // need to skip the first part of the split, since it returns the empty string.
-    // Note: Crubit can generate poorly formatted names, like `:: foo :: bar`, so we also
-    // need to trim whitespace to create valid identifiers.
-    let name_parts = type_expression_suffix
-        .split("::")
-        .skip(is_absolute_path as usize)
-        .map(str::trim)
-        .map(make_rs_ident);
+    let type_expression = type_expression_suffix
+        .parse::<TokenStream>()
+        .expect("Type expression should parse as a TokenStream");
 
-    let top_level_crate = if is_absolute_path {
-        quote! {}
+    if type_expression_suffix.starts_with("::") {
+        quote! { #prefix #type_expression }
     } else {
-        root_crate()
-    };
-    quote! { #prefix  #top_level_crate :: #(#name_parts)::* }
+        let top_level_crate = root_crate();
+        quote! { #prefix #top_level_crate::#type_expression }
+    }
 }
 
 struct RsTypeKindIter<'ty> {
@@ -1999,11 +2016,12 @@ mod tests {
     use token_stream_matchers::assert_rs_matches;
 
     fn make_existing_rust_type(name: Rc<str>, is_same_abi: bool) -> RsTypeKind {
-        RsTypeKind::ExistingRustType {
-            existing_rust_type: Rc::new(ExistingRustType {
+        RsTypeKind::new_existing_rust_type(
+            EmptyDatabase,
+            Rc::new(ExistingRustType {
                 rs_name: name.clone(),
                 cc_name: "".into(),
-                unique_name: name,
+                unique_name: name.clone(),
                 template_args: Vec::new(),
                 template_arg_names: Vec::new(),
                 owning_target: BazelLabel("//new/for/testing".into()),
@@ -2012,8 +2030,8 @@ mod tests {
                 id: ItemId::new_for_testing(0),
                 must_bind: false,
             }),
-            template_args: Rc::default(),
-        }
+        )
+        .expect("Should succeed because all fallible operations come from BindingsGenerated, which EmptyDatabase cannot successfully deref to (it panics).")
     }
 
     #[gtest]
