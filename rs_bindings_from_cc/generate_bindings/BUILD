@@ -418,6 +418,7 @@ rust_library(
         "//common:code_gen_utils",
         "//common:crubit_abi_type",
         "//common:error_report",
+        "//common:memoized",
         "//rs_bindings_from_cc:ir",
         "//rs_bindings_from_cc/generate_bindings/database",
         "@crate_index//:itertools",  # v0_13
@@ -438,9 +439,12 @@ multiplatform_rust_test(
     ],
     visibility = ["//cargo:__subpackages__"],
     deps = [
+        ":generate_bindings",
         ":lifetime_defaults_transform",
         ":multiplatform_ir_testing",
         "//common:arc_anyhow",
+        "//common:error_report",
+        "//common:ffi_types",
         "//common:multiplatform_testing",
         "//rs_bindings_from_cc:ir",
         "//rs_bindings_from_cc:ir_matchers",

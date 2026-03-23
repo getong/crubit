@@ -270,8 +270,6 @@ fn generate_function_assertation_for_identifier(
     func: &Func,
     id: &Identifier,
 ) -> Result<ThunkImpl> {
-    let ir = db.ir();
-
     let fn_ident = format_cc_ident(&id.identifier)?;
     let path_to_func = db.namespace_qualifier(func).format_for_cc()?;
     let implementation_function = quote! { :: #path_to_func #fn_ident };
@@ -386,7 +384,6 @@ pub fn generate_function_thunk_impl(
     if can_skip_cc_thunk(db, func) {
         return Ok(None);
     }
-    let ir = db.ir();
     let thunk_ident = thunk_ident(func);
     let implementation_function = match &func.cc_name {
         UnqualifiedIdentifier::Operator(op) => {
