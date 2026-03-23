@@ -127,15 +127,15 @@ pub fn AcceptSpecialized(
     }
 }
 
-// Type bindings for Ptr<int> suppressed due to being mapped to an existing Rust type (crate::RustPtr::<::ffi_11::c_int>)
+// Type bindings for Ptr<int> suppressed due to being mapped to an existing Rust type (crate::RustPtr<::ffi_11::c_int>)
 
-// Type bindings for CppTypeWithTemplateArgs<int, float, true> suppressed due to being mapped to an existing Rust type (crate::RustTypeWithReorderedGenerics::<::ffi_11::c_int,f32,true>)
+// Type bindings for CppTypeWithTemplateArgs<int, float, true> suppressed due to being mapped to an existing Rust type (crate::RustTypeWithReorderedGenerics<::ffi_11::c_int,f32,true>)
 
-// Type bindings for ConvertPtrs<float, int> suppressed due to being mapped to an existing Rust type (crate::RustTypeReordered::<f32,::ffi_11::c_int>)
+// Type bindings for ConvertPtrs<float, int> suppressed due to being mapped to an existing Rust type (crate::RustTypeReordered<f32,::ffi_11::c_int>)
 
-// Type bindings for WithDefault<float> suppressed due to being mapped to an existing Rust type (crate::RustTypeWithDefault::<f32,::ffi_11::c_int>)
+// Type bindings for WithDefault<float> suppressed due to being mapped to an existing Rust type (crate::RustTypeWithDefault<f32,::ffi_11::c_int>)
 
-// Type bindings for MyContainer<int> suppressed due to being mapped to an existing Rust type (crate::MyRustContainer::<::ffi_11::c_int>)
+// Type bindings for MyContainer<int> suppressed due to being mapped to an existing Rust type (crate::MyRustContainer<::ffi_11::c_int>)
 
 // Type bindings for MyContainer<void> suppressed due to being mapped to an existing Rust type (crate::MyRustContainerVoid)
 
@@ -183,22 +183,22 @@ const _: () = {
     assert!(::core::mem::offset_of!(crate::ExistingRustTypeFieldTypes, my_i8_enum) == 2);
     assert!(::core::mem::offset_of!(crate::ExistingRustTypeFieldTypes, my_i8_alias) == 3);
     assert!(::core::mem::offset_of!(crate::ExistingRustTypeFieldTypes, error) == 4);
-    assert!(::core::mem::size_of::<crate::RustPtr::<::ffi_11::c_int>>() == 8);
-    assert!(::core::mem::align_of::<crate::RustPtr::<::ffi_11::c_int>>() == 8);
+    assert!(::core::mem::size_of::<crate::RustPtr<::ffi_11::c_int>>() == 8);
+    assert!(::core::mem::align_of::<crate::RustPtr<::ffi_11::c_int>>() == 8);
     assert!(
-        ::core::mem::size_of::<crate::RustTypeWithReorderedGenerics::<::ffi_11::c_int, f32, true>>(
-        ) == 16
+        ::core::mem::size_of::<crate::RustTypeWithReorderedGenerics<::ffi_11::c_int, f32, true>>()
+            == 16
     );
     assert!(
-        ::core::mem::align_of::<crate::RustTypeWithReorderedGenerics::<::ffi_11::c_int, f32, true>>(
-        ) == 8
+        ::core::mem::align_of::<crate::RustTypeWithReorderedGenerics<::ffi_11::c_int, f32, true>>()
+            == 8
     );
-    assert!(::core::mem::size_of::<crate::RustTypeReordered::<f32, ::ffi_11::c_int>>() == 1);
-    assert!(::core::mem::align_of::<crate::RustTypeReordered::<f32, ::ffi_11::c_int>>() == 1);
-    assert!(::core::mem::size_of::<crate::RustTypeWithDefault::<f32, ::ffi_11::c_int>>() == 1);
-    assert!(::core::mem::align_of::<crate::RustTypeWithDefault::<f32, ::ffi_11::c_int>>() == 1);
-    assert!(::core::mem::size_of::<crate::MyRustContainer::<::ffi_11::c_int>>() == 1);
-    assert!(::core::mem::align_of::<crate::MyRustContainer::<::ffi_11::c_int>>() == 1);
+    assert!(::core::mem::size_of::<crate::RustTypeReordered<f32, ::ffi_11::c_int>>() == 1);
+    assert!(::core::mem::align_of::<crate::RustTypeReordered<f32, ::ffi_11::c_int>>() == 1);
+    assert!(::core::mem::size_of::<crate::RustTypeWithDefault<f32, ::ffi_11::c_int>>() == 1);
+    assert!(::core::mem::align_of::<crate::RustTypeWithDefault<f32, ::ffi_11::c_int>>() == 1);
+    assert!(::core::mem::size_of::<crate::MyRustContainer<::ffi_11::c_int>>() == 1);
+    assert!(::core::mem::align_of::<crate::MyRustContainer<::ffi_11::c_int>>() == 1);
     assert!(::core::mem::size_of::<crate::MyRustContainerVoid>() == 1);
     assert!(::core::mem::align_of::<crate::MyRustContainerVoid>() == 1);
 };

@@ -1780,7 +1780,7 @@ impl RsTypeKind {
 
                         let generic_types_tokens =
                             generic_types.iter().map(|t| t.to_token_stream(db));
-                        quote! { #path::<#(#generic_types_tokens),*> }
+                        quote! { #path<#(#generic_types_tokens),*> }
                     }
                     BridgeRsTypeKind::ProtoMessageBridge { rust_name } => {
                         fully_qualify_type(db, ir::Item::Record(original_type.clone()), rust_name)
@@ -1838,7 +1838,7 @@ impl RsTypeKind {
                     TemplateArg::Bool(b) => quote! { #b },
                 });
 
-                quote! { #path::<#(#template_args_tokens),*> }
+                quote! { #path<#(#template_args_tokens),*> }
             }
         }
     }
