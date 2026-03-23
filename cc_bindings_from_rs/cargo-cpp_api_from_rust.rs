@@ -30,7 +30,6 @@ use cmdline::Cmdline;
 
 use std::env;
 use std::ffi;
-use std::path::PathBuf;
 use std::process::{Command, Stdio};
 
 #[derive(Debug, Parser)]
@@ -191,7 +190,7 @@ fn main() -> Result<()> {
         })?;
 
     // Step 3: Build a static lib out of the rs file generated in step 2.
-    let mut rustc_args = vec![
+    let rustc_args = vec![
         "rustc".to_string(),
         out_dir.join(format!("{}_cc_api_impl.rs", source_crate_name)).to_string(),
         format!("--edition={}", edition),

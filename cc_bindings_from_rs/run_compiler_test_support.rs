@@ -191,7 +191,7 @@ fn rustc_interface_config(opts: Options, source: String) -> rustc_interface::int
 }
 
 #[rustversion::since(2026-02-08)]
-#[rustversion::before(2026-03-16)]
+#[rustversion::before(2026-03-18)]
 fn rustc_interface_config(opts: Options, source: String) -> rustc_interface::interface::Config {
     rustc_interface::interface::Config {
         opts,
@@ -216,7 +216,7 @@ fn rustc_interface_config(opts: Options, source: String) -> rustc_interface::int
     }
 }
 
-#[rustversion::since(2026-03-16)]
+#[rustversion::since(2026-03-18)]
 fn rustc_interface_config(opts: Options, source: String) -> rustc_interface::interface::Config {
     rustc_interface::interface::Config {
         opts,

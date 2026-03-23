@@ -266,7 +266,7 @@ pub fn construct_config(input: config::Input, opts: config::Options) -> rustc_in
 }
 
 #[rustversion::since(2026-02-08)]
-#[rustversion::before(2026-03-16)]
+#[rustversion::before(2026-03-18)]
 pub fn construct_config(input: config::Input, opts: config::Options) -> rustc_interface::Config {
     rustc_interface::Config {
         // Command line options
@@ -300,7 +300,7 @@ pub fn construct_config(input: config::Input, opts: config::Options) -> rustc_in
     }
 }
 
-#[rustversion::since(2026-03-16)]
+#[rustversion::since(2026-03-18)]
 pub fn construct_config(input: config::Input, opts: config::Options) -> rustc_interface::Config {
     rustc_interface::Config {
         // Command line options
