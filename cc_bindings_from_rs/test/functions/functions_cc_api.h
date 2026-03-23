@@ -17,9 +17,11 @@
 #pragma clang diagnostic ignored "-Wunused-private-field"
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
 #include "support/annotations_internal.h"
+#include "support/internal/check_no_mutable_aliasing.h"
 #include "support/internal/cxx20_backports.h"
 #include "support/lifetime_annotations.h"
 #include "support/rs_std/char.h"
+#include "support/rs_std/slice_ref.h"
 
 #include <array>
 #include <cstdint>
@@ -136,6 +138,47 @@ void set_mut_ref_to_sum_of_ints(std::int32_t& sum, std::int32_t x,
 
 }  // namespace functions::fn_param_ty_tests
 
+namespace functions::generic_fn_tests::as_mut_trait_tests {
+
+// Generated from:
+// cc_bindings_from_rs/test/functions/functions.rs;l=250
+void prefix_sums(rs_std::SliceRef<std::int32_t> arg);
+
+}  // namespace functions::generic_fn_tests::as_mut_trait_tests
+
+namespace functions::generic_fn_tests::as_ref_trait_tests {
+
+//  This is an attempt to trigger an error seen in
+//  https://play.rust-lang.org/?version=stable&mode=debug&edition=2024&gist=42303eaaafe4a3538ad259e9e9b67f05
+//
+//  Today the error doesn't happen in Crubit, because the thunks explicitly
+//  declare all their lifetimes as `'static` - see `fn
+//  replace_all_regions_with_static`.
+//
+// Generated from:
+// cc_bindings_from_rs/test/functions/functions.rs;l=241
+std::int32_t static_sum(rs_std::SliceRef<const std::int32_t> arg);
+
+// Generated from:
+// cc_bindings_from_rs/test/functions/functions.rs;l=208
+std::int32_t sum(rs_std::SliceRef<const std::int32_t> arg);
+
+//  The substitution `impl AsRef<[i32]>` => `&[u32]` needs to "conjure" a new,
+//  late-bound lifetime/region.  The test below is an ad-hoc attempt to test
+//  that the new region doesn't somehow clobber/conflict with existing implicit
+//  or explicit lifetimes. `impl AsRef<[i32]>` is "sandwiched" in the middle to
+//  increase the chances that a conflict would be caught somehow.  The test
+//  never failed, so it's unclear how useful it is.
+//
+// Generated from:
+// cc_bindings_from_rs/test/functions/functions.rs;l=219
+void sum3(rs_std::SliceRef<const std::int32_t> arg1,
+          rs_std::SliceRef<const std::int32_t> arg2,
+          rs_std::SliceRef<const std::int32_t> arg3,
+          rs_std::SliceRef<std::int32_t> result);
+
+}  // namespace functions::generic_fn_tests::as_ref_trait_tests
+
 namespace functions::generic_fn_tests::into_trait_tests {
 
 // Generated from:
@@ -147,7 +190,7 @@ std::int32_t basic_test(std::int32_t arg);
 //  `get_generic_args.rs`.
 //
 // Generated from:
-// cc_bindings_from_rs/test/functions/functions.rs;l=180
+// cc_bindings_from_rs/test/functions/functions.rs;l=184
 std::int32_t generic_param_nested_deeper_in_param_ty(
     std::array<std::int32_t, 3> xs);
 
@@ -156,13 +199,17 @@ std::int32_t generic_param_nested_deeper_in_param_ty(
 std::int32_t multiple_generic_params(std::int32_t x, std::int32_t y);
 
 // Generated from:
+// cc_bindings_from_rs/test/functions/functions.rs;l=177
+std::int32_t return_type();
+
+// Generated from:
 // cc_bindings_from_rs/test/functions/functions.rs;l=169
 std::int32_t reused_generic_param(std::int32_t x, std::int32_t y);
 
 // Error generating bindings for
 // `functions_golden::generic_fn_tests::into_trait_tests::unused_generic_param`
 // defined at
-// cc_bindings_from_rs/test/functions/functions.rs;l=200:
+// cc_bindings_from_rs/test/functions/functions.rs;l=204:
 // No support for replacing an _unused_ generic type param: `T`
 
 // Generated from:
@@ -346,6 +393,56 @@ inline void set_mut_ref_to_sum_of_ints(std::int32_t& sum, std::int32_t x,
 
 }  // namespace functions::fn_param_ty_tests
 
+namespace functions::generic_fn_tests::as_mut_trait_tests {
+
+namespace __crubit_internal {
+extern "C" void __crubit_thunk_prefix_usums(rs_std::SliceRef<std::int32_t>);
+}
+inline void prefix_sums(rs_std::SliceRef<std::int32_t> arg) {
+  return __crubit_internal::__crubit_thunk_prefix_usums(arg);
+}
+
+}  // namespace functions::generic_fn_tests::as_mut_trait_tests
+
+namespace functions::generic_fn_tests::as_ref_trait_tests {
+
+namespace __crubit_internal {
+extern "C" std::int32_t __crubit_thunk_static_usum(
+    rs_std::SliceRef<const std::int32_t>);
+}
+inline std::int32_t static_sum(rs_std::SliceRef<const std::int32_t> arg) {
+  return __crubit_internal::__crubit_thunk_static_usum(arg);
+}
+
+namespace __crubit_internal {
+extern "C" std::int32_t __crubit_thunk_sum(
+    rs_std::SliceRef<const std::int32_t>);
+}
+inline std::int32_t sum(rs_std::SliceRef<const std::int32_t> arg) {
+  return __crubit_internal::__crubit_thunk_sum(arg);
+}
+
+namespace __crubit_internal {
+extern "C" void __crubit_thunk_sum3(rs_std::SliceRef<const std::int32_t>,
+                                    rs_std::SliceRef<const std::int32_t>,
+                                    rs_std::SliceRef<const std::int32_t>,
+                                    rs_std::SliceRef<std::int32_t>);
+}
+inline void sum3(rs_std::SliceRef<const std::int32_t> arg1,
+                 rs_std::SliceRef<const std::int32_t> arg2,
+                 rs_std::SliceRef<const std::int32_t> arg3,
+                 rs_std::SliceRef<std::int32_t> result) {
+  crubit::internal::CheckNoMutableAliasing(
+      crubit::internal::AsMutPtrDatas<rs_std::SliceRef<std::int32_t>>(result),
+      crubit::internal::AsPtrDatas<rs_std::SliceRef<const std::int32_t>,
+                                   rs_std::SliceRef<const std::int32_t>,
+                                   rs_std::SliceRef<const std::int32_t>>(
+          arg1, arg2, arg3));
+  return __crubit_internal::__crubit_thunk_sum3(arg1, arg2, arg3, result);
+}
+
+}  // namespace functions::generic_fn_tests::as_ref_trait_tests
+
 namespace functions::generic_fn_tests::into_trait_tests {
 
 namespace __crubit_internal {
@@ -371,6 +468,13 @@ extern "C" std::int32_t __crubit_thunk_multiple_ugeneric_uparams(std::int32_t,
 }
 inline std::int32_t multiple_generic_params(std::int32_t x, std::int32_t y) {
   return __crubit_internal::__crubit_thunk_multiple_ugeneric_uparams(x, y);
+}
+
+namespace __crubit_internal {
+extern "C" std::int32_t __crubit_thunk_return_utype();
+}
+inline std::int32_t return_type() {
+  return __crubit_internal::__crubit_thunk_return_utype();
 }
 
 namespace __crubit_internal {

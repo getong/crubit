@@ -85,6 +85,29 @@ unsafe extern "C" fn __crubit_thunk_set_umut_uref_uto_usum_uof_uints(
     unsafe { ::functions_golden::fn_param_ty_tests::set_mut_ref_to_sum_of_ints(sum, x, y) }
 }
 #[unsafe(no_mangle)]
+unsafe extern "C" fn __crubit_thunk_prefix_usums(arg: &'static mut [i32]) -> () {
+    unsafe { ::functions_golden::generic_fn_tests::as_mut_trait_tests::prefix_sums(arg) }
+}
+#[unsafe(no_mangle)]
+unsafe extern "C" fn __crubit_thunk_static_usum(arg: &'static [i32]) -> i32 {
+    unsafe { ::functions_golden::generic_fn_tests::as_ref_trait_tests::static_sum(arg) }
+}
+#[unsafe(no_mangle)]
+unsafe extern "C" fn __crubit_thunk_sum(arg: &'static [i32]) -> i32 {
+    unsafe { ::functions_golden::generic_fn_tests::as_ref_trait_tests::sum(arg) }
+}
+#[unsafe(no_mangle)]
+unsafe extern "C" fn __crubit_thunk_sum3(
+    arg1: &'static [i32],
+    arg2: &'static [i32],
+    arg3: &'static [i32],
+    result: &'static mut [i32],
+) -> () {
+    unsafe {
+        ::functions_golden::generic_fn_tests::as_ref_trait_tests::sum3(arg1, arg2, arg3, result)
+    }
+}
+#[unsafe(no_mangle)]
 unsafe extern "C" fn __crubit_thunk_basic_utest(arg: i32) -> i32 {
     unsafe { ::functions_golden::generic_fn_tests::into_trait_tests::basic_test(arg) }
 }
@@ -100,6 +123,10 @@ unsafe extern "C" fn __crubit_thunk_generic_uparam_unested_udeeper_uin_uparam_ut
 #[unsafe(no_mangle)]
 unsafe extern "C" fn __crubit_thunk_multiple_ugeneric_uparams(x: i32, y: i32) -> i32 {
     unsafe { ::functions_golden::generic_fn_tests::into_trait_tests::multiple_generic_params(x, y) }
+}
+#[unsafe(no_mangle)]
+unsafe extern "C" fn __crubit_thunk_return_utype() -> i32 {
+    unsafe { ::functions_golden::generic_fn_tests::into_trait_tests::return_type() }
 }
 #[unsafe(no_mangle)]
 unsafe extern "C" fn __crubit_thunk_reused_ugeneric_uparam(x: i32, y: i32) -> i32 {

@@ -90,9 +90,23 @@ fn get_replacement_for_trait_predicate<'tcx>(
     // we typically want the first and only other generic argument - `U`.
     let ty1 = trait_ref.args.get(1).and_then(|generic_arg| generic_arg.as_type())?;
 
+    // See `replace_all_regions_with_static` for rationale for using the `'static` lifetime.
+    // TODO(b/495521049): Consider using an anonymous lifetime instead.
+    let static_lifetime = tcx.lifetimes.re_static;
+
     // `T: Into<U>` => `U`
     if tcx.is_diagnostic_item(sym::Into, trait_ref.def_id) {
         return Some(ty1);
+    }
+
+    // `T: AsRef<U>` => `&U`
+    if tcx.is_diagnostic_item(sym::AsRef, trait_ref.def_id) {
+        return Some(Ty::new_imm_ref(tcx, static_lifetime, ty1));
+    }
+
+    // `T: AsMut<U>` => `&mut U`
+    if tcx.is_diagnostic_item(sym::AsMut, trait_ref.def_id) {
+        return Some(Ty::new_mut_ref(tcx, static_lifetime, ty1));
     }
 
     // TODO(b/281542952): Implement other replacements as needed.

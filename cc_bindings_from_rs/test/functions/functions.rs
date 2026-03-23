@@ -174,6 +174,10 @@ pub mod generic_fn_tests {
             x.into() + y.into()
         }
 
+        pub fn return_type<T: Into<i32> + Default>() -> T {
+            T::default()
+        }
+
         /// This test was initially added to cover/verify the call to
         /// `super_visit_with` from an `impl` of `GenericParamsFinder` in
         /// `get_generic_args.rs`.
@@ -198,5 +202,57 @@ pub mod generic_fn_tests {
         /// unsafe { ::functions::generic_fn_tests::into_trait_tests::unused_generic_param::<T>() }
         /// ```
         pub fn unused_generic_param<T: Into<i32>>() {}
+    }
+
+    pub mod as_ref_trait_tests {
+        pub fn sum(arg: impl AsRef<[i32]>) -> i32 {
+            arg.as_ref().iter().sum()
+        }
+
+        /// The substitution `impl AsRef<[i32]>` => `&[u32]` needs to "conjure" a new, late-bound
+        /// lifetime/region.  The test below is an ad-hoc attempt to test that the new region
+        /// doesn't somehow clobber/conflict with existing implicit or explicit lifetimes.
+        /// `impl AsRef<[i32]>` is "sandwiched" in the middle to increase the chances that
+        /// a conflict would be caught somehow.  The test never failed, so it's unclear how
+        /// useful it is.
+        #[allow(clippy::needless_lifetimes)]
+        pub fn sum3<'a, 'b>(
+            arg1: &[i32],
+            arg2: &'a [i32],
+            arg3: impl AsRef<[i32]>,
+            result: &'b mut [i32],
+        ) {
+            let sums = arg1
+                .iter()
+                .zip(arg2.iter())
+                .map(|(x, y)| x + y)
+                .zip(arg3.as_ref().iter())
+                .map(|(x, y)| x + y);
+            for (sum, result) in sums.zip(result.iter_mut()) {
+                *result = sum;
+            }
+        }
+
+        /// This is an attempt to trigger an error seen in
+        /// https://play.rust-lang.org/?version=stable&mode=debug&edition=2024&gist=42303eaaafe4a3538ad259e9e9b67f05
+        ///
+        /// Today the error doesn't happen in Crubit, because the thunks explicitly
+        /// declare all their lifetimes as `'static` - see `fn replace_all_regions_with_static`.
+        pub fn static_sum<T>(arg: T) -> i32
+        where
+            T: AsRef<[i32]> + 'static,
+        {
+            arg.as_ref().iter().sum()
+        }
+    }
+
+    pub mod as_mut_trait_tests {
+        pub fn prefix_sums(mut arg: impl AsMut<[i32]>) {
+            let mut sum = 0;
+            for x in arg.as_mut() {
+                sum += *x;
+                *x = sum;
+            }
+        }
     }
 }

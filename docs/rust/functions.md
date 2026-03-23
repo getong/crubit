@@ -89,8 +89,7 @@ Nevertheless, a small set of generic type parameters is supported by using
 canonical substitutions which are defined as follows:
 
 Generic constraints | Canonical substitution
-------------------- | ----------------------------------------------
+------------------- | ----------------------
+`T: AsMut<U>`       | `&mut U`
+`T: AsRef<U>`       | `&U`
 `T: Into<U>`        | `U`
-`T: AsRef<U>`       | TODO(b/281542952): Implement this substitution
-
-TODO(b/281542952): Add an example once this feature is released.

@@ -944,6 +944,31 @@ fn test_format_item_generic_fn_into_trait_basic_replacement() {
     });
 }
 
+#[test]
+fn test_format_item_generic_fn_as_ref_trait_basic_replacement() {
+    let test_src = r#"
+            #![allow(unused)]
+            pub fn generic_function(arg: impl AsRef<[u8]>) { todo!() }
+        "#;
+    test_format_item(test_src, "generic_function", |result| {
+        let result = result.unwrap().unwrap();
+        assert_cc_matches!(
+            result.main_api.tokens,
+            quote! {
+              void generic_function(rs_std::SliceRef<const std::uint8_t> arg);
+            }
+        );
+        assert_rs_matches!(
+            result.rs_details.tokens,
+            quote! {
+                unsafe extern "C" fn __crubit_thunk_generic_ufunction(arg: &'static [u8]) -> () {
+                    unsafe { ::rust_out::generic_function(arg) }
+                }
+            }
+        );
+    });
+}
+
 /// This test was initally added to provide coverage/verification that
 /// _all_ generic parameters need to have valid replacements.
 #[test]
