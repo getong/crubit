@@ -27,6 +27,7 @@ use database::BindingsGenerator;
 use database::{FineGrainedFeature, TypeLocation};
 use error_report::{anyhow, bail, ensure};
 use proc_macro2::{Ident, Literal, Span, TokenStream};
+use query_compiler::is_c_abi_compatible_by_value;
 use quote::{quote, ToTokens};
 use rustc_abi::{BackendRepr, HasDataLayout, Integer, Layout, Primitive, Scalar, TargetDataLayout};
 use rustc_hir::lang_items::LangItem;
@@ -276,6 +277,17 @@ pub fn format_ty_for_cc<'tcx>(
         ty::TyKind::Adt(adt, substs) => {
             let def_id = adt.did();
             let mut prereqs = CcPrerequisites::default();
+
+            if location.is_bridgeable() && is_c_abi_compatible_by_value(tcx, ty) {
+                ensure!(
+                    db.has_move_ctor_and_assignment_operator(
+                        adt.did(),
+                        ty,
+                    )
+                    .is_some(),
+                    "Can't pass a type by value without a move constructor. See crubit.rs/rust/movable_types for what types are C++ movable."
+                );
+            }
 
             let bridged_builtin = BridgedBuiltin::new(db, adt);
             if bridged_builtin.is_some_and(|bridged_builtin| {
