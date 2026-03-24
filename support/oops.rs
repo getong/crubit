@@ -193,7 +193,8 @@ pub unsafe trait Inherits<Base> {
     /// Otherwise, if `derived` is non-dereferencable and `Base` is a virtual
     /// base class, the behavior is undefined.
     unsafe fn upcast_ptr_mut(derived: *mut Self) -> *mut Base {
-        Self::upcast_ptr(derived) as *mut _
+        // SAFETY: This function has the same safety contract as `Self::upcast_ptr`.
+        unsafe { Self::upcast_ptr(derived) as *mut _ }
     }
 }
 
