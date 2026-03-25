@@ -31,7 +31,7 @@ use quote::{format_ident, quote};
 use rustc_abi::{Endian, FieldsShape, VariantIdx, Variants};
 use rustc_middle::mir::interpret::Scalar;
 use rustc_middle::mir::ConstValue;
-use rustc_middle::ty::{self, Ty, TyCtxt, TyKind, TypeFlags};
+use rustc_middle::ty::{self, AssocKind, IntTy, Ty, TyCtxt, TyKind, TypeFlags, TypingEnv, UintTy};
 use rustc_span::def_id::{CrateNum, DefId, LOCAL_CRATE};
 use rustc_span::symbol::sym;
 use std::collections::{BTreeSet, HashMap, HashSet};
@@ -541,6 +541,200 @@ fn generate_into_impls<'tcx>(
         .collect()
 }
 
+fn generate_index_impls<'tcx>(
+    db: &BindingsGenerator<'tcx>,
+    core: &AdtCoreBindings<'tcx>,
+) -> ApiSnippets<'tcx> {
+    let tcx = db.tcx();
+    let cc_struct_name = &core.cc_short_name;
+
+    struct IndexImpl<'tcx> {
+        ty: Ty<'tcx>,
+        def_id: DefId,
+        snippets: ApiSnippets<'tcx>,
+    }
+    struct IndexImpls<'tcx> {
+        has_usize_impl: bool,
+        has_isize_impl: bool,
+        impls: Vec<Result<IndexImpl<'tcx>, (arc_anyhow::Error, DefId)>>,
+    }
+    impl<'tcx> IndexImpls<'tcx> {
+        fn into_iter<'a>(
+            self,
+            db: &'a BindingsGenerator<'tcx>,
+        ) -> impl Iterator<Item = ApiSnippets<'tcx>> + use<'a, 'tcx> {
+            self.impls.into_iter()
+                .map(move |res| match res {
+                    Ok(IndexImpl { ty, def_id, snippets }) => {
+                        // One of these two pairings could overlap based on platform. Technically more if we support 16-bit/8-bit platforms. But Index<usize> is so common, it's worth providing that one over the others.
+                        if matches!(ty.kind(), TyKind::Int(IntTy::I64) | TyKind::Int(IntTy::I32)) && self.has_isize_impl {
+                            return generate_unsupported_def(db, def_id, anyhow!("Index implementation for `{ty}` is not supported when `Index<isize>` is implemented as it may overlap.")).into_main_api()
+                        }
+                        if matches!(ty.kind(), TyKind::Uint(UintTy::U64) | TyKind::Uint(UintTy::U32)) && self.has_usize_impl {
+                            return generate_unsupported_def(db, def_id, anyhow!("Index implementation for `{ty}` is not supported when `Index<usize>` is implemented as it may overlap.")).into_main_api()
+                        }
+                        snippets
+                    },
+                    Err((e, def_id)) => generate_unsupported_def(db, def_id, e).into_main_api(),
+                })
+        }
+    }
+
+    let query_index_impls = |index_trait: DefId,
+                             method_this_qualifier: TokenStream,
+                             to_ref: fn(TyCtxt<'tcx>, Ty<'tcx>) -> Ty<'tcx>|
+     -> IndexImpls<'tcx> {
+        let mut has_usize_impl = false;
+        let mut has_isize_impl = false;
+
+        let impls = tcx.non_blanket_impls_for_ty(index_trait, core.self_ty).map(|index_impl_id| {
+            #[rustversion::since(2025-10-17)]
+            let middle_trait_header = tcx.impl_trait_header(index_impl_id);
+            #[rustversion::before(2025-10-17)]
+            let middle_trait_header = tcx
+                .impl_trait_header(index_impl_id)
+                .expect("DefId for an `Index` trait impl lacked a trait header");
+            // Index 0 of our trait ref is the self type, so index 1 is the type we're converting
+            // into.
+            let index_element_ty =
+                middle_trait_header.trait_ref.instantiate_identity().args.type_at(1);
+
+            if index_element_ty.is_usize() {
+                has_usize_impl = true;
+            } else if matches!(index_element_ty.kind(), TyKind::Int(IntTy::Isize)) {
+                has_isize_impl = true;
+            }
+            let index_cc_ty = db
+                .format_ty_for_cc(index_element_ty, TypeLocation::FnParam { is_self_param: false, elided_is_output: false })
+                .map_err(|e| (e, index_impl_id))?;
+
+            let index_assoc_fn = tcx.associated_items(index_impl_id)
+                .in_definition_order()
+                .filter(|assoc_item| matches!(assoc_item.kind, AssocKind::Fn { .. }))
+                // For `Index` or `IndexMut`, we expect exactly one associated fn.
+                .exactly_one()
+                .map_err(|_| (anyhow!("{} impl expected to have a single function", tcx.def_path_str(index_trait)), index_impl_id))?;
+
+            let output_unnorm = tcx.fn_sig(index_assoc_fn.def_id)
+                // Assuming that the impl is monomorphic but we might need to provide substs here.
+                .instantiate_identity()
+                .output();
+            let output_ty = tcx.normalize_erasing_late_bound_regions(
+                TypingEnv::fully_monomorphized(),
+                output_unnorm);
+
+            // Index::Output isn't the real return type of our index method. We need to wrap it in a
+            // reference before formatting, so that Output types like `str` are formatted correctly as
+            // `&str`.
+            let output_cc_ty = db
+                .format_ty_for_cc(output_ty, TypeLocation::FnReturn { is_constructor: false })
+                .map_err(|e| (e, index_impl_id))?;
+
+            let mut prereqs = CcPrerequisites::default();
+            let output_cc_ty = output_cc_ty.into_tokens(&mut prereqs);
+            let TraitThunks {
+                method_name_to_cc_thunk_name,
+                cc_thunk_decls,
+                rs_thunk_impls: rs_details,
+            } = generate_trait_thunks(
+                db,
+                index_trait,
+                &[index_element_ty],
+                core,
+                /*is_constructor=*/ false,
+            ).map_err(|e| (e, index_impl_id))?;
+
+            let thunk_name = method_name_to_cc_thunk_name
+                .into_values()
+                .exactly_one()
+                .expect("Expecting a single `into` method");
+
+            let cc_thunk_decls = cc_thunk_decls.into_tokens(&mut prereqs);
+            let doc_comment = generate_doc_comment(db, index_impl_id);
+
+            let self_by_ref = to_ref(tcx, core.self_ty);
+            let self_cpp_ty = db
+                .format_ty_for_cc(
+                    self_by_ref,
+                    TypeLocation::FnParam { is_self_param: true, elided_is_output: true },
+                )
+                .expect(
+                    "ADT's self type should be C++-convertible after generate_adt_core succeeds",
+                );
+            let self_cpp_ty = self_cpp_ty.into_tokens(&mut prereqs);
+            let impl_body = generate_thunk_call(
+                db,
+                index_impl_id,
+                thunk_name.clone(),
+                output_ty,
+                ThunkSelfParameter::new(
+                    /*has_self=*/ true,
+                    is_copy(tcx, index_impl_id, self_by_ref),
+                    /*is_trait_method =*/ false,
+                ),
+                &[Param {
+                    cc_name: format_ident!("self"),
+                    cpp_type: CcParamTy {
+                        snippet: CcSnippet::new(self_cpp_ty),
+                        is_lifetime_bound: false,
+                    },
+                    ty: self_by_ref,
+                }, Param {
+                    cc_name: format_ident!("index"),
+                    cpp_type: CcParamTy {
+                        snippet: index_cc_ty.clone(),
+                        is_lifetime_bound: false,
+                    },
+                    ty: index_element_ty,
+                }],
+            ).map_err(|e| (e, index_impl_id))?;
+
+            let index_cc_ty = index_cc_ty.into_tokens(&mut prereqs);
+            let impl_body_tokens = impl_body.into_tokens(&mut prereqs);
+            prereqs.move_defs_to_fwd_decls();
+
+            Ok(IndexImpl {
+                ty: index_element_ty,
+                def_id: index_impl_id,
+                snippets: ApiSnippets {
+                  main_api: CcSnippet {
+                      tokens: quote! {
+                      __NEWLINE__ #doc_comment
+                      #output_cc_ty operator [ ] (#index_cc_ty index) #method_this_qualifier; __NEWLINE__
+                      __NEWLINE__
+                      },
+                      prereqs,
+                  },
+                  cc_details: CcSnippet::new(quote! {
+                      #cc_thunk_decls
+
+                      inline #output_cc_ty #cc_struct_name :: operator  [ ] (#index_cc_ty index) #method_this_qualifier {
+                          #impl_body_tokens
+                      }
+                  }),
+                  rs_details,
+                }
+            })
+        })
+        .collect();
+
+        IndexImpls { has_usize_impl, has_isize_impl, impls }
+    };
+
+    let index_impls: IndexImpls<'tcx> = query_index_impls(
+        tcx.lang_items().index_trait().expect("Could not find Index trait"),
+        quote! { const& },
+        |tcx, ty| Ty::new_imm_ref(tcx, tcx.lifetimes.re_static, ty),
+    );
+    let index_mut_impls: IndexImpls<'tcx> = query_index_impls(
+        tcx.lang_items().index_mut_trait().expect("Could not find IndexMut trait"),
+        quote! { & },
+        |tcx, ty| Ty::new_mut_ref(tcx, tcx.lifetimes.re_static, ty),
+    );
+
+    index_impls.into_iter(db).chain(index_mut_impls.into_iter(db)).collect()
+}
+
 /// Formats an algebraic data type (an ADT - a struct, an enum, or a union)
 /// represented by `core`.  This function is infallible - after
 /// `generate_adt_core` returns success we have committed to emitting C++
@@ -626,6 +820,7 @@ pub fn generate_adt<'tcx>(
 
     let adt_based_ctors = generate_adt_based_ctors(db, core.clone(), &mut member_function_names);
     let into_operator_snippets = generate_into_impls(db, core.as_ref());
+    let index_operator_snippets = generate_index_impls(db, core.as_ref());
 
     let ApiSnippets {
         main_api: public_functions_main_api,
@@ -640,6 +835,7 @@ pub fn generate_adt<'tcx>(
         relocating_ctor_snippets,
         impl_items_snippets,
         into_operator_snippets,
+        index_operator_snippets,
     ]
     .into_iter()
     .collect();

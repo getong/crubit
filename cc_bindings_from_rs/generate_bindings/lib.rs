@@ -1521,7 +1521,7 @@ fn generate_item_impl<'tcx>(
 
 /// Formats a C++ comment explaining why no bindings have been generated for
 /// `local_def_id`.
-fn generate_unsupported_def<'tcx>(
+pub(crate) fn generate_unsupported_def<'tcx>(
     db: &BindingsGenerator<'tcx>,
     def_id: DefId,
     err: Error,

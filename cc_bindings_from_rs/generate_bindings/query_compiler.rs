@@ -23,6 +23,7 @@ use rustc_abi::{FieldIdx, FieldsShape, Integer, Layout, Primitive, Scalar, Varia
 use rustc_ast::ast::{IntTy as IntT, UintTy as UintT};
 use rustc_hir::attrs::IntType;
 use rustc_infer::infer::TyCtxtInferExt;
+use rustc_middle::ty::solve::NoSolution;
 use rustc_middle::ty::{
     self, GenericArg, GenericArgKind, GenericParamDefKind, IntTy, Region, Ty, TyCtxt, UintTy,
 };
@@ -163,6 +164,26 @@ pub fn liberate_and_deanonymize_late_bound_regions<'tcx>(
         )
     };
     tcx.instantiate_bound_regions_uncached(sig, region_f)
+}
+
+/// This is mirroring the logic of TyCtxt::try_normalize_after_erasing_regions except it does not
+/// erase regions. Because we emit lifetime annotations it's important that we do not erase
+/// regions.
+pub fn try_normalize<'tcx, T: ty::TypeFoldable<TyCtxt<'tcx>> + PartialEq + Copy>(
+    tcx: TyCtxt<'tcx>,
+    goal: ty::PseudoCanonicalInput<'tcx, T>,
+) -> Result<T, NoSolution> {
+    use rustc_trait_selection::traits::query::normalize::QueryNormalizeExt;
+    use rustc_trait_selection::traits::{Normalized, ObligationCause};
+    let ty::PseudoCanonicalInput { typing_env, value } = goal;
+    let (infcx, param_env) = tcx.infer_ctxt().build_with_typing_env(typing_env);
+    let cause = ObligationCause::dummy(); // RESPECTFUL_TERMS_EXCEPTION: rustc code we don't own.
+    infcx
+        .at(&cause, param_env)
+        .query_normalize(value)
+        // We ignore obligations, since we know this code already type checks.
+        // We're only interested in expanding projections of associated types.
+        .map(|Normalized { value, .. }| value)
 }
 
 pub fn has_non_lifetime_generics<'tcx>(tcx: TyCtxt<'tcx>, def_id: DefId) -> bool {

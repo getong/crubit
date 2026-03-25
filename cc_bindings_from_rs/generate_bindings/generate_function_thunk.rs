@@ -19,10 +19,10 @@ use database::{AdtCoreBindings, BindingsGenerator};
 use error_report::{anyhow, bail, ensure};
 use itertools::Itertools;
 use proc_macro2::{Ident, TokenStream};
-use query_compiler::post_analysis_typing_env;
+use query_compiler::{post_analysis_typing_env, try_normalize};
 use quote::format_ident;
 use quote::quote;
-use rustc_middle::ty::{self, Ty, TyCtxt};
+use rustc_middle::ty::{self, Ty, TyCtxt, TypingEnv};
 use rustc_span::def_id::DefId;
 use rustc_span::symbol::{kw, sym, Symbol};
 use rustc_type_ir::inherent::Region;
@@ -731,7 +731,15 @@ pub fn generate_trait_thunks<'tcx>(
 
         let sig_mid = liberate_and_deanonymize_late_bound_regions(
             tcx,
-            tcx.fn_sig(method.def_id).instantiate(tcx, substs),
+            // We normalize here to expand associated types to their underlying type.
+            try_normalize(
+                tcx,
+                ty::PseudoCanonicalInput {
+                    typing_env: TypingEnv::fully_monomorphized(),
+                    value: tcx.fn_sig(method.def_id).instantiate(tcx, substs),
+                },
+            )
+            .expect("Normalization should succeed since this code typechecked"),
             method.def_id,
         );
 

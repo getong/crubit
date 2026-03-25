@@ -301,7 +301,7 @@ memoized::query_group! {
       /// better to evoke the trait solver directly rather than going through this mapping. For that
       /// reason, this function is currently limited to `From` specifically.
       ///
-      /// Implementation: cc_bindings_from_rs/generate_bindings/generate_struct_and_union.rs?q=function:local_from_trait_impls_by_argument
+      /// Implementation: cc_bindings_from_rs/generate_bindings/generate_struct_and_union.rs?q=function:from_trait_impls_by_argument
       fn from_trait_impls_by_argument(&self, crate_num: CrateNum) -> Rc<HashMap<Ty<'tcx>, Vec<DefId>>>;
 
       /// Given a function identified by `fn_def_id` (generic or non-generic) tries to return
