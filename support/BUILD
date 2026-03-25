@@ -295,8 +295,9 @@ filegroup(
 )
 
 bazel_to_builds(
-    name = "generate_cmake",
+    name = "generate_builds",
     cmake = "CMakeLists.txt",
+    gn = "BUILD.gn",
     targets = [
         ":annotations",
         ":annotations_internal",

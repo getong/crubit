@@ -1,0 +1,32 @@
+# Part of the Crubit project, under the Apache License v2.0 with LLVM
+# Exceptions. See /LICENSE for license information.
+# SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+
+# Automatically @generated BUILD.gn.
+
+import("../../../crubit.gni")
+
+visibility = [ "$crubit_src_dir/*" ]
+
+source_set("is_utf8") {
+  public_configs = [ "$crubit_src_dir/support:config" ]
+  if (defined(crubit_gn_configs_to_remove)) {
+    configs -= crubit_gn_configs_to_remove
+  }
+  if (defined(crubit_gn_support_configs_to_add)) {
+    configs += crubit_gn_support_configs_to_add
+  }
+
+  public = [
+    "is_utf8.h",
+  ]
+  deps = [
+    "$crubit_absl_dep_target",
+  ]
+}
+
+group("internal") {
+  public_deps = [
+    ":is_utf8",
+  ]
+}

@@ -1,0 +1,161 @@
+# Part of the Crubit project, under the Apache License v2.0 with LLVM
+# Exceptions. See /LICENSE for license information.
+# SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+
+# Automatically @generated BUILD.gn.
+
+import("../../crubit.gni")
+
+visibility = [ "$crubit_src_dir/*" ]
+
+source_set("char") {
+  public_configs = [ "$crubit_src_dir/support:config" ]
+  if (defined(crubit_gn_configs_to_remove)) {
+    configs -= crubit_gn_configs_to_remove
+  }
+  if (defined(crubit_gn_support_configs_to_add)) {
+    configs += crubit_gn_support_configs_to_add
+  }
+
+  public = [
+    "char.h",
+  ]
+  sources = [
+    "char.cc",
+  ]
+  deps = [
+    "$crubit_src_dir/support/rs_std:str_ref",
+    "$crubit_src_dir/support:annotations",
+    "$crubit_absl_dep_target",
+  ]
+}
+
+source_set("slice_ref") {
+  public_configs = [ "$crubit_src_dir/support:config" ]
+  if (defined(crubit_gn_configs_to_remove)) {
+    configs -= crubit_gn_configs_to_remove
+  }
+  if (defined(crubit_gn_support_configs_to_add)) {
+    configs += crubit_gn_support_configs_to_add
+  }
+
+  public = [
+    "slice_ref.h",
+  ]
+  deps = [
+    "$crubit_src_dir/support:annotations_internal",
+    "$crubit_src_dir/support/internal:bindings_support",
+    "$crubit_absl_dep_target",
+  ]
+}
+
+source_set("str_ref") {
+  public_configs = [ "$crubit_src_dir/support:config" ]
+  if (defined(crubit_gn_configs_to_remove)) {
+    configs -= crubit_gn_configs_to_remove
+  }
+  if (defined(crubit_gn_support_configs_to_add)) {
+    configs += crubit_gn_support_configs_to_add
+  }
+
+  public = [
+    "str_ref.h",
+  ]
+  deps = [
+    "$crubit_src_dir/support/rs_std:slice_ref",
+    "$crubit_src_dir/support:annotations_internal",
+    "$crubit_src_dir/support/internal:bindings_support",
+    "$crubit_src_dir/support/rs_std/internal:is_utf8",
+    "$crubit_absl_dep_target",
+  ]
+}
+
+source_set("dyn_callable") {
+  public_configs = [ "$crubit_src_dir/support:config" ]
+  if (defined(crubit_gn_configs_to_remove)) {
+    configs -= crubit_gn_configs_to_remove
+  }
+  if (defined(crubit_gn_support_configs_to_add)) {
+    configs += crubit_gn_support_configs_to_add
+  }
+
+  public = [
+    "dyn_callable.h",
+  ]
+  deps = [
+    "$crubit_src_dir/support:bridge_cpp",
+    "$crubit_absl_dep_target",
+  ]
+}
+
+source_set("traits") {
+  public_configs = [ "$crubit_src_dir/support:config" ]
+  if (defined(crubit_gn_configs_to_remove)) {
+    configs -= crubit_gn_configs_to_remove
+  }
+  if (defined(crubit_gn_support_configs_to_add)) {
+    configs += crubit_gn_support_configs_to_add
+  }
+
+  public = [
+    "traits.h",
+  ]
+}
+
+source_set("option") {
+  public_configs = [ "$crubit_src_dir/support:config" ]
+  if (defined(crubit_gn_configs_to_remove)) {
+    configs -= crubit_gn_configs_to_remove
+  }
+  if (defined(crubit_gn_support_configs_to_add)) {
+    configs += crubit_gn_support_configs_to_add
+  }
+
+  public = [
+    "option.h",
+  ]
+}
+
+source_set("result") {
+  public_configs = [ "$crubit_src_dir/support:config" ]
+  if (defined(crubit_gn_configs_to_remove)) {
+    configs -= crubit_gn_configs_to_remove
+  }
+  if (defined(crubit_gn_support_configs_to_add)) {
+    configs += crubit_gn_support_configs_to_add
+  }
+
+  public = [
+    "result.h",
+  ]
+}
+
+source_set("lossy_formatter_for_bindings") {
+  public_configs = [ "$crubit_src_dir/support:config" ]
+  if (defined(crubit_gn_configs_to_remove)) {
+    configs -= crubit_gn_configs_to_remove
+  }
+  if (defined(crubit_gn_support_configs_to_add)) {
+    configs += crubit_gn_support_configs_to_add
+  }
+
+  public = [
+    "lossy_formatter_for_bindings.h",
+  ]
+  deps = [
+    "$crubit_src_dir/support/rs_std:lossy_formatter_cc",
+  ]
+}
+
+group("rs_std") {
+  public_deps = [
+    ":char",
+    ":slice_ref",
+    ":str_ref",
+    ":dyn_callable",
+    ":traits",
+    ":option",
+    ":result",
+    ":lossy_formatter_for_bindings",
+  ]
+}

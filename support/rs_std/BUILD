@@ -279,8 +279,9 @@ cpp_api_from_rust_toolchain_bindings(
 )
 
 bazel_to_builds(
-    name = "generate_cmake",
+    name = "generate_builds",
     cmake = "CMakeLists.txt",
+    gn = "BUILD.gn",
     targets = [
         ":char",
         ":slice_ref",
