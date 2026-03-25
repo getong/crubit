@@ -52,10 +52,6 @@ memoized::query_group! {
       fn default_features(&self) -> flagset::FlagSet<crubit_feature::CrubitFeature>;
 
       #[input]
-      /// Feature flag enabling HIR types.
-      fn enable_hir_types(&self) -> bool;
-
-      #[input]
       /// Feature flag enabling Kythe annotations
       fn kythe_annotations(&self) -> bool;
 

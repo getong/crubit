@@ -81,7 +81,6 @@ fn bindings_db_for_tests_with_features(
             .unwrap(),
         /* crubit_debug_path_format= */ None,
         /* default_features= */ Default::default(),
-        /* enable_hir_types= */ true,
         /* kythe_annotations= */ with_kythe_annotations,
         /* enable_rmeta_interface= */ false,
         /* crate_name_to_include_paths= */ Default::default(),
