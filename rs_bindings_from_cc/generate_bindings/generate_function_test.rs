@@ -7,7 +7,7 @@ use code_gen_utils::make_rs_ident;
 use database::code_snippet::BindingsTokens;
 use database::rs_snippet::{format_generic_params, Lifetime};
 use generate_function_thunk::thunk_ident;
-use googletest::prelude::{assert_that, contains_substring, gtest, OrFail as _};
+use googletest::prelude::{assert_that, contains_substring, expect_that, gtest, not, OrFail as _};
 use ir::{Func, Item, UnqualifiedIdentifier};
 use ir_testing::{retrieve_func, with_lifetime_macros};
 use multiplatform_ir_testing::{
@@ -1065,7 +1065,10 @@ fn test_impl_eq_non_const_member_function() -> Result<()> {
         };"#,
     )?;
     let rs_api = generate_bindings_tokens_for_test(ir)?.rs_api;
-    assert_rs_not_matches!(rs_api, quote! {impl PartialEq});
+    expect_that!(
+        rs_api.to_string(),
+        contains_substring("Expected first operator== param reference to be immutable"),
+    );
     Ok(())
 }
 
@@ -1104,7 +1107,10 @@ fn test_impl_lt_non_const_member_function() -> Result<()> {
         };"#,
     )?;
     let rs_api = generate_bindings_tokens_for_test(ir)?.rs_api;
-    assert_rs_not_matches!(rs_api, quote! {impl PartialOrd});
+    expect_that!(
+        rs_api.to_string(),
+        contains_substring("Expected first operator< param reference to be immutable")
+    );
     Ok(())
 }
 
@@ -1113,7 +1119,7 @@ fn test_impl_lt_rhs_by_value() -> Result<()> {
     let ir = ir_from_cc(
         r#"
         struct SomeStruct final {
-            inline bool operator==(const SomeStruct& other) const {
+            inline bool operator==(SomeStruct other) const {
                 return i == other.i;
             }
             int i;
@@ -1121,7 +1127,7 @@ fn test_impl_lt_rhs_by_value() -> Result<()> {
         };"#,
     )?;
     let rs_api = generate_bindings_tokens_for_test(ir)?.rs_api;
-    assert_rs_not_matches!(rs_api, quote! {impl PartialOrd});
+    expect_that!(rs_api.to_string(), not(contains_substring("error")));
     Ok(())
 }
 
@@ -1137,7 +1143,7 @@ fn test_impl_lt_missing_eq_impl() -> Result<()> {
         };"#,
     )?;
     let rs_api = generate_bindings_tokens_for_test(ir)?.rs_api;
-    assert_rs_not_matches!(rs_api, quote! {impl PartialOrd});
+    expect_that!(rs_api.to_string(), contains_substring("operator< where operator== is missing"),);
     Ok(())
 }
 
@@ -1855,10 +1861,8 @@ fn test_nonmovable_param() -> Result<()> {
         void TakesByValue(Nonmovable) {}
         "#,
     )?;
-    let BindingsTokens { rs_api, rs_api_impl } = generate_bindings_tokens_for_test(ir)?;
-    // Bindings for TakesByValue cannot be generated.
-    assert_rs_matches!(rs_api, quote! {TakesByValue<'error>});
-    assert_cc_not_matches!(rs_api_impl, quote! {TakesByValue});
+    let BindingsTokens { rs_api_impl, .. } = generate_bindings_tokens_for_test(ir)?;
+    assert_cc_not_matches!(rs_api_impl, quote! {void TakesByValue});
     Ok(())
 }
 

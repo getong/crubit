@@ -130,11 +130,6 @@ pub enum ImplKind {
         /// Reference style for the `impl` block and self parameters.
         impl_for: ImplFor,
 
-        /// The generic params of trait `impl` (e.g. `vec!['b]`).
-        /// These start empty and only later are mutated into the
-        /// correct value.
-        trait_generic_params: Rc<[Lifetime]>,
-
         /// Whether to format the first parameter as "self" (e.g. `__this:
         /// &mut T` -> `&mut self`)
         format_first_param_as_self: bool,
@@ -181,7 +176,6 @@ impl ImplKind {
             record,
             trait_name,
             impl_for: ImplFor::T,
-            trait_generic_params: Rc::new([]),
             format_first_param_as_self,
             drop_return: false,
             associated_return_type: None,
@@ -210,7 +204,7 @@ impl ImplKind {
 /// Whether the impl block is for T, and the receivers take self by reference,
 /// or the impl block is for a reference to T, and the method receivers take
 /// self by value.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum ImplFor {
     /// Implement the trait for `T` directly.
     ///

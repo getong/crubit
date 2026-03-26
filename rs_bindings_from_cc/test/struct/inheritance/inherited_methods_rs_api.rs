@@ -66,14 +66,14 @@ impl Base {
     }
     /// Generated from: rs_bindings_from_cc/test/struct/inheritance/inherited_methods.h;l=19
     #[inline(always)]
-    pub fn no_bindings<'error, '__this>(&'__this self, __param_0: ::ctor::Ctor![crate::Nonmovable])
+    pub fn no_bindings<'__this>(&'__this self, __param_0: ::ctor::Ctor![crate::Nonmovable])
     where
-        &'error (): BindingFailedFor_ZNK4Base11no_bindingsE10Nonmovable,
+        for<'error> &'error (): BindingFailedFor_ZNK4Base11no_bindingsE10Nonmovable,
     {
         #![allow(unused_variables)]
         unreachable!(
             "This impl can never be instantiated. \
-                    If this message appears at runtime, please report a crubit.rs-bug."
+                If this message appears at runtime, please report a crubit.rs-bug."
         )
     }
 }
@@ -119,14 +119,14 @@ impl Derived {
     }
     /// Generated from: rs_bindings_from_cc/test/struct/inheritance/inherited_methods.h;l=19
     #[inline(always)]
-    pub fn no_bindings<'error, '__this>(&'__this self, __param_0: ::ctor::Ctor![crate::Nonmovable])
+    pub fn no_bindings<'__this>(&'__this self, __param_0: ::ctor::Ctor![crate::Nonmovable])
     where
-        &'error (): BindingFailedFor_7Derived__ZNK4Base11no_bindingsE10Nonmovable,
+        for<'error> &'error (): BindingFailedFor_7Derived__ZNK4Base11no_bindingsE10Nonmovable,
     {
         #![allow(unused_variables)]
         unreachable!(
             "This impl can never be instantiated. \
-                    If this message appears at runtime, please report a crubit.rs-bug."
+                If this message appears at runtime, please report a crubit.rs-bug."
         )
     }
 }

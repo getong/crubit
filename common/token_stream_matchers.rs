@@ -191,8 +191,8 @@ pub mod internal {
         }
 
         assert!(!best_mismatch.messages.is_empty());
-        let input_string = to_string_fn(input.clone())?;
-        let pattern_string = to_string_fn(pattern.clone())?;
+        let input_string = to_string_fn(input.clone()).unwrap_or_else(|_| input.to_string());
+        let pattern_string = to_string_fn(pattern.clone()).unwrap_or_else(|_| pattern.to_string());
         let indent = |s: &str| -> String {
             use std::fmt::Write;
             let mut output = String::new();
@@ -216,7 +216,7 @@ pub mod internal {
         to_string_fn: fn(TokenStream) -> Result<String>,
     ) -> Result<()> {
         if token_stream_matchers_fastpath::match_tokens_fast(input, pattern).is_ok() {
-            let input_string = to_string_fn(input.clone())?;
+            let input_string = to_string_fn(input.clone()).unwrap_or_else(|_| input.to_string());
             Err(anyhow!(format!(
                 "input unexpectedly matched the pattern. input:\n\n```\n{}\n```",
                 input_string

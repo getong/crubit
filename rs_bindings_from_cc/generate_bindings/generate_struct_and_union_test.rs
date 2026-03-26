@@ -6,7 +6,7 @@ use arc_anyhow::Result;
 use code_gen_utils::make_rs_ident;
 use database::code_snippet::BindingsTokens;
 use generate_struct_and_union::generate_derives;
-use googletest::prelude::gtest;
+use googletest::{expect_that, gtest, matchers::contains_substring};
 use ir_testing::with_lifetime_macros;
 use multiplatform_ir_testing::{ir_from_cc, ir_from_cc_dependency, ir_from_fmt_cc, ir_record};
 use proc_macro2::TokenStream;
@@ -429,11 +429,11 @@ fn test_trivial_nonpublic_destructor() -> Result<()> {
     )?;
     let rs_api = generate_bindings_tokens_for_test(ir)?.rs_api;
     // It isn't available by value:
-    assert_rs_matches!(rs_api, quote! {impl<'error> Default});
-    assert_rs_matches!(rs_api, quote! {impl<'error> From});
-    assert_rs_matches!(rs_api, quote! {impl<'error> Clone});
+    expect_that!(
+        rs_api.to_string(),
+        contains_substring("Can't directly construct values of type `Indestructible`"),
+    );
     assert_rs_not_matches!(rs_api, quote! {ReturnsValue});
-    assert_rs_matches!(rs_api, quote! {TakesValue<'error>});
     // ... but it is otherwise available:
     assert_rs_matches!(rs_api, quote! {struct Indestructible});
     assert_rs_matches!(rs_api, quote! {fn Foo<'a>(&'a self)});
@@ -463,7 +463,10 @@ fn test_nontrivial_nonpublic_destructor() -> Result<()> {
     // It isn't available by value:
     assert_rs_not_matches!(rs_api, quote! {CtorNew});
     assert_rs_not_matches!(rs_api, quote! {ReturnsValue});
-    assert_rs_matches!(rs_api, quote! {TakesValue<'error>});
+    expect_that!(
+        rs_api.to_string(),
+        contains_substring("Can't directly construct values of type `Indestructible`"),
+    );
     // ... but it is otherwise available:
     assert_rs_matches!(rs_api, quote! {struct Indestructible});
     assert_rs_matches!(rs_api, quote! {fn Foo<'a>(&'a self)});

@@ -33,16 +33,16 @@ unsafe impl ::cxx::ExternType for TypeWithPtrConstructor {
 )]
 pub trait BindingFailedFor_ZN22TypeWithPtrConstructorC1EPi {}
 /// Generated from: rs_bindings_from_cc/test/references/references.h;l=10
-impl<'error> From<*mut ::ffi_11::c_int> for TypeWithPtrConstructor
+impl From<*mut ::ffi_11::c_int> for TypeWithPtrConstructor
 where
-    &'error (): BindingFailedFor_ZN22TypeWithPtrConstructorC1EPi,
+    for<'error> &'error (): BindingFailedFor_ZN22TypeWithPtrConstructorC1EPi,
 {
     #[inline(always)]
     fn from(args: *mut ::ffi_11::c_int) -> Self {
         #![allow(unused_variables)]
         unreachable!(
             "This impl can never be instantiated. \
-                    If this message appears at runtime, please report a crubit.rs-bug."
+                If this message appears at runtime, please report a crubit.rs-bug."
         )
     }
 }
@@ -66,16 +66,16 @@ unsafe impl ::cxx::ExternType for TypeWithNonNullPtrConstructor {
 )]
 pub trait BindingFailedFor_ZN29TypeWithNonNullPtrConstructorC1EPi {}
 /// Generated from: rs_bindings_from_cc/test/references/references.h;l=15
-impl<'error> From<*mut ::ffi_11::c_int> for TypeWithNonNullPtrConstructor
+impl From<*mut ::ffi_11::c_int> for TypeWithNonNullPtrConstructor
 where
-    &'error (): BindingFailedFor_ZN29TypeWithNonNullPtrConstructorC1EPi,
+    for<'error> &'error (): BindingFailedFor_ZN29TypeWithNonNullPtrConstructorC1EPi,
 {
     #[inline(always)]
     fn from(args: *mut ::ffi_11::c_int) -> Self {
         #![allow(unused_variables)]
         unreachable!(
             "This impl can never be instantiated. \
-                    If this message appears at runtime, please report a crubit.rs-bug."
+                If this message appears at runtime, please report a crubit.rs-bug."
         )
     }
 }

@@ -402,7 +402,6 @@ fn api_func_shape_for_operator_assign(
             is_unsafe_fn: false,
         },
         impl_for: ImplFor::T,
-        trait_generic_params: Rc::new([]),
         format_first_param_as_self: true,
         drop_return: true,
         associated_return_type: None,
@@ -591,7 +590,6 @@ fn api_func_shape_for_operator(
                         is_unsafe_fn: false,
                     },
                     impl_for: ImplFor::T,
-                    trait_generic_params: Rc::new([]),
                     format_first_param_as_self: true,
                     drop_return: true,
                     associated_return_type: None,
@@ -611,7 +609,6 @@ fn api_func_shape_for_operator(
                         is_unsafe_fn: false,
                     },
                     impl_for,
-                    trait_generic_params: Rc::new([]),
                     format_first_param_as_self: true,
                     drop_return: false,
                     associated_return_type: Some(make_rs_ident("Output")),
@@ -697,7 +694,6 @@ fn api_func_shape_for_destructor(
                 is_unsafe_fn: false,
             },
             impl_for: ImplFor::T,
-            trait_generic_params: Rc::new([]),
             format_first_param_as_self: true,
             drop_return: false,
             associated_return_type: None,
@@ -717,7 +713,6 @@ fn api_func_shape_for_destructor(
                 is_unsafe_fn: true,
             },
             impl_for: ImplFor::T,
-            trait_generic_params: Rc::new([]),
             format_first_param_as_self: true,
             drop_return: false,
             associated_return_type: None,
@@ -809,7 +804,6 @@ fn api_func_shape_for_constructor(
             record: record.clone(),
             trait_name: TraitName::CtorNew(params.iter().cloned().collect()),
             impl_for: ImplFor::T,
-            trait_generic_params: Rc::new([]),
             format_first_param_as_self: false,
             drop_return: false,
             associated_return_type: Some(make_rs_ident("CtorType")),
@@ -1215,9 +1209,7 @@ fn generate_func_body(
 /// Note: a default value of this structure represents no errors.
 #[derive(Default)]
 struct ErrorsAsUnsatisfiedTraitBound {
-    // like `'error`
-    lifetime_param: Option<Lifetime>,
-    // like "where &'error (): BindingGenerationFailure"
+    // like "where for<'error> &'error (): BindingGenerationFailure"
     unsatisfied_where_clause: TokenStream,
     // like `#[diagnostic::on_unimplemented(...)] trait BindingGenerationFailure {}`
     unimplemented_trait_def: TokenStream,
@@ -1233,10 +1225,10 @@ struct ErrorsAsUnsatisfiedTraitBound {
 /// #[diagnostic::on_unimplemented(message = "binding generation for function failed\n...")]
 /// pub trait BindingFailedFor{unique_id} {}
 ///
-/// fn generated_api_func<'a>() where &'error (): BindingFailedFor{unique_id} { unreachable!() }
+/// fn generated_api_func() where for<'error> &'error (): BindingFailedFor{unique_id} { unreachable!() }
 /// ```
 ///
-/// Note: the `lifetime_param` `'error` is only needed until the
+/// Note: the `for<'error> &'error` is only needed until the
 /// `trivial_bounds` feature is stable, see: https://github.com/rust-lang/rust/issues/48214#issuecomment-2557829956
 fn errors_as_unsatisfied_trait_bound(
     reportable_errors: &Result<(), ErrorList>,
@@ -1247,17 +1239,13 @@ fn errors_as_unsatisfied_trait_bound(
     };
     let lt = Lifetime::new("error");
     let trait_name = format_ident!("BindingFailedFor{}", unique_id);
-    let unsatisfied_where_clause = quote! { where & #lt (): #trait_name };
+    let unsatisfied_where_clause = quote! { where for<#lt> & #lt (): #trait_name, };
     let message = format!("binding generation for function failed\n{reportable_errors}");
     let unimplemented_trait_def = quote! {
         #[diagnostic::on_unimplemented(message = #message)]
         pub trait #trait_name {}
     };
-    ErrorsAsUnsatisfiedTraitBound {
-        lifetime_param: Some(lt),
-        unsatisfied_where_clause,
-        unimplemented_trait_def,
-    }
+    ErrorsAsUnsatisfiedTraitBound { unsatisfied_where_clause, unimplemented_trait_def }
 }
 
 /// Returns whether or not the given function should treat reference parameters with unannotated
@@ -1447,7 +1435,7 @@ pub fn generate_function(
     let (mut param_types, mut return_type) = rs_type_kinds_for_func(db, &func)?;
 
     let errors = Errors::new();
-    let (func_name, mut impl_kind) =
+    let (func_name, impl_kind) =
         if let Some(values) = api_func_shape(db, &func, &mut param_types, &errors) {
             values
         } else {
@@ -1486,7 +1474,7 @@ pub fn generate_function(
     // assume_lifetimes.
 
     let BindingsSignature {
-        mut lifetimes,
+        lifetimes,
         params: api_params,
         return_type_fragment: mut quoted_return_type,
         thunk_prepare,
@@ -1525,149 +1513,40 @@ pub fn generate_function(
     } else {
         ("", "")
     };
-    let ErrorsAsUnsatisfiedTraitBound {
-        lifetime_param: error_lifetime_param,
-        mut unsatisfied_where_clause,
-        unimplemented_trait_def,
-    } = errors_as_unsatisfied_trait_bound(
-        &reportable_status,
-        &format!("{sep}{derived_class_prefix}{sep}{}", &func.mangled_name),
-    );
+    let ErrorsAsUnsatisfiedTraitBound { unsatisfied_where_clause, unimplemented_trait_def } =
+        errors_as_unsatisfied_trait_bound(
+            &reportable_status,
+            &format!("{sep}{derived_class_prefix}{sep}{}", &func.mangled_name),
+        );
 
-    let api_func_def = {
-        let thunk_ident = thunk_ident(&func);
-
-        let func_body = if reportable_status.is_ok() {
-            generate_func_body(
-                db,
-                &impl_kind,
-                crate_root_path,
-                &return_type,
-                &param_value_adjustments,
-                thunk_ident,
-                thunk_prepare,
-                thunk_args,
-            )?
-        } else {
-            let mut result = quote! {
-                #![allow(unused_variables)]
-                unreachable!(
-                    "This impl can never be instantiated. \
-                    If this message appears at runtime, please report a crubit.rs-bug."
-                )
-            };
-            if !return_type.is_unpin() {
-                result.extend(quote! {
-                    ; #[allow(unreachable_code)]
-                    ::ctor::UnreachableCtor::new()
-                });
-            }
-            result
+    let func_body = if reportable_status.is_ok() {
+        generate_func_body(
+            db,
+            &impl_kind,
+            crate_root_path,
+            &return_type,
+            &param_value_adjustments,
+            thunk_ident(&func),
+            thunk_prepare,
+            thunk_args,
+        )?
+    } else {
+        let mut result = quote! {
+            #![allow(unused_variables)]
+            unreachable!(
+                "This impl can never be instantiated. \
+                If this message appears at runtime, please report a crubit.rs-bug."
+            )
         };
-
-        // If there are no bindings, use `Public` for the sake of "keeping on going" when
-        // collecting errors for items that will not actually be generated.
-        let visibility =
-            db.has_bindings(ir::Item::Func(func.clone())).unwrap_or_default().visibility;
-        let pub_ = match &impl_kind {
-            ImplKind::Trait { trait_name, always_public: false, .. }
-                if visibility == Visibility::PubCrate =>
-            {
-                bail!("Implementation of {trait_name} cannot be restricted to wrappers with pub(crate)")
-            }
-            ImplKind::Trait { .. } => quote! {},
-            _ => quote! {#visibility},
-        };
-        let unsafe_ = if impl_kind.is_unsafe() {
-            quote! { unsafe }
-        } else {
-            quote! {}
-        };
-
-        // If we are generating a trait impl, its `where` clause will be on the `impl` item.
-        // Otherwise, it must be on the `fn` item.
-        let where_clause_on_impl = match impl_kind {
-            ImplKind::Trait { .. } => true,
-            // Free functions have no impl.
-            ImplKind::None { .. } => false,
-            // Struct functions are placed in an inherent impl block later by `generate_record`, but
-            // inherent impls cannot take where clauses in the same way that trait impls can, so the
-            // where clause must be on the function.
-            ImplKind::Struct { .. } => false,
-        };
-        let where_clause = if where_clause_on_impl {
-            None
-        } else {
-            if let Some(lt) = &error_lifetime_param {
-                lifetimes.insert(0, lt.clone());
-            }
-            Some(core::mem::take(&mut unsatisfied_where_clause))
-        };
-
-        let fn_generic_params: TokenStream;
-        if let ImplKind::Trait { trait_name, trait_generic_params, impl_for, .. } = &mut impl_kind {
-            // When the impl block is for some kind of reference to T, consider the lifetime
-            // parameters on the self parameter to be trait lifetimes so they can be
-            // introduced before they are used.
-            let first_param_lifetimes = match (impl_for, param_types.first()) {
-                (ImplFor::RefT, Some(first_param)) => Some(first_param.lifetimes()),
-                _ => None,
-            };
-
-            let trait_lifetimes: HashSet<Lifetime> =
-                trait_name.lifetimes().chain(first_param_lifetimes.into_iter().flatten()).collect();
-            fn_generic_params = format_generic_params(
-                lifetimes.iter().filter(|lifetime| !trait_lifetimes.contains(lifetime)),
-                std::iter::empty::<syn::Ident>(),
-            );
-            *trait_generic_params = Rc::from(
-                lifetimes
-                    .iter()
-                    .filter_map(|lifetime| {
-                        if trait_lifetimes.contains(lifetime) {
-                            Some(lifetime.clone())
-                        } else {
-                            None
-                        }
-                    })
-                    .collect::<Vec<Lifetime>>(),
-            );
-        } else {
-            fn_generic_params = format_generic_params(&lifetimes, std::iter::empty::<syn::Ident>());
+        if !return_type.is_unpin() {
+            result.extend(quote! {
+                ; #[allow(unreachable_code)]
+                ::ctor::UnreachableCtor::new()
+            });
         }
-
-        let function_return_type = match &impl_kind {
-            ImplKind::Trait { associated_return_type: Some(ident), .. } => quote! {Self::#ident},
-            _ => quoted_return_type.clone(),
-        };
-        let arrow = if !function_return_type.is_empty() {
-            quote! {->}
-        } else {
-            quote! {}
-        };
-
-        let bracketed_func_name = if db.kythe_annotations() {
-            quote! { __CAPTURE_BEGIN__ #func_name __CAPTURE_END__ }
-        } else {
-            quote! { #func_name }
-        };
-
-        quote! {
-            #[inline(always)]
-            #pub_ #unsafe_ fn #bracketed_func_name #fn_generic_params(
-                    #( #api_params ),* ) #arrow #function_return_type #where_clause {
-                #func_body
-            }
-        }
+        result
     };
 
-    let doc_comment = generate_doc_comment(
-        func.doc_comment.as_deref(),
-        generate_func_safety_doc(db, &func, &impl_kind, &param_idents, &param_types).as_deref(),
-        Some(&func.source_loc),
-        db.environment(),
-        db.kythe_annotations(),
-    );
     // Check to see if we can get precise location information. If it's not available, emit a stub
     // capture tag so we don't ascribe definitions to the wrong location.
     let capture_tags = if db.kythe_annotations() {
@@ -1679,12 +1558,56 @@ pub fn generate_function(
     } else {
         quote! {}
     };
+
+    let doc_comment = generate_doc_comment(
+        func.doc_comment.as_deref(),
+        generate_func_safety_doc(db, &func, &impl_kind, &param_idents, &param_types).as_deref(),
+        Some(&func.source_loc),
+        db.environment(),
+        db.kythe_annotations(),
+    );
+
+    // If there are no bindings, use `Public` for the sake of "keeping on going" when
+    // collecting errors for items that will not actually be generated.
+    let visibility = db.has_bindings(ir::Item::Func(func.clone())).unwrap_or_default().visibility;
+    let unsafety = if impl_kind.is_unsafe() {
+        quote! { unsafe }
+    } else {
+        quote! {}
+    };
+
+    let bracketed_func_name = if db.kythe_annotations() {
+        quote! { __CAPTURE_BEGIN__ #func_name __CAPTURE_END__ }
+    } else {
+        quote! { #func_name }
+    };
+
+    let arrow = if !quoted_return_type.is_empty() {
+        quote! {->}
+    } else {
+        quote! {}
+    };
+
     let api_func: TokenStream;
     let function_id: FunctionId;
     let mut member_functions_map = HashMap::new();
     match impl_kind {
         ImplKind::None { .. } => {
-            api_func = quote! { #unimplemented_trait_def #capture_tags #doc_comment #api_func_def };
+            let fn_generic_params =
+                format_generic_params(&lifetimes, std::iter::empty::<syn::Ident>());
+            api_func = quote! {
+                #unimplemented_trait_def
+                #capture_tags
+                #doc_comment
+                #[inline(always)]
+                #visibility
+                #unsafety
+                fn #bracketed_func_name #fn_generic_params(
+                    #( #api_params ),*
+                ) #arrow #quoted_return_type #unsatisfied_where_clause {
+                    #func_body
+                }
+            };
             function_id = FunctionId {
                 self_type: None,
                 function_path: syn::parse2(quote! { #namespace_qualifier #func_name }).unwrap(),
@@ -1694,9 +1617,22 @@ pub fn generate_function(
             let record_name = make_rs_ident(
                 derived_record.as_deref().unwrap_or(record.as_ref()).rs_name.identifier.as_ref(),
             );
+            let fn_generic_params =
+                format_generic_params(&lifetimes, std::iter::empty::<syn::Ident>());
             member_functions_map.insert(
                 derived_record.as_deref().unwrap_or(record.as_ref()).id,
-                vec![quote! { #unsatisfied_where_clause #capture_tags #doc_comment #api_func_def }],
+                vec![quote! {
+                    #capture_tags
+                    #doc_comment
+                    #[inline(always)]
+                    #visibility
+                    #unsafety
+                    fn #bracketed_func_name #fn_generic_params(
+                        #( #api_params ),*
+                    ) #arrow #quoted_return_type #unsatisfied_where_clause {
+                        #func_body
+                    }
+                }],
             );
             api_func = quote! {
                 #unimplemented_trait_def
@@ -1712,11 +1648,39 @@ pub fn generate_function(
         ImplKind::Trait {
             record: trait_record,
             trait_name,
+            always_public,
             impl_for,
-            trait_generic_params,
             associated_return_type,
             ..
         } => {
+            if !always_public && visibility == Visibility::PubCrate {
+                bail!("Implementation of {trait_name} cannot be restricted to wrappers with pub(crate)")
+            }
+            // When the impl block is for some kind of reference to T, consider the lifetime
+            // parameters on the self parameter to be trait lifetimes so they can be
+            // introduced before they are used.
+            let first_param_lifetimes = match (impl_for, param_types.first()) {
+                (ImplFor::RefT, Some(first_param)) => Some(first_param.lifetimes()),
+                _ => None,
+            };
+
+            let trait_lifetimes: HashSet<Lifetime> =
+                trait_name.lifetimes().chain(first_param_lifetimes.into_iter().flatten()).collect();
+            let fn_generic_params = format_generic_params(
+                lifetimes.iter().filter(|lifetime| !trait_lifetimes.contains(lifetime)),
+                std::iter::empty::<syn::Ident>(),
+            );
+            let trait_generic_params: Vec<Lifetime> = lifetimes
+                .iter()
+                .filter_map(|lifetime| {
+                    if trait_lifetimes.contains(lifetime) {
+                        Some(lifetime.clone())
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+
             let assume_lifetimes = db
                 .ir()
                 .target_crubit_features(&trait_record.owning_target)
@@ -1729,14 +1693,14 @@ pub fn generate_function(
             };
 
             let mut extra_body = if let Some(name) = associated_return_type {
-                let quoted_return_type = if quoted_return_type.is_empty() {
-                    quote! {()}
+                let associated_type;
+                if quoted_return_type.is_empty() {
+                    associated_type = quote! { type #name = (); };
                 } else {
-                    quoted_return_type
+                    associated_type = quote! { type #name = #quoted_return_type; };
+                    quoted_return_type = quote! { Self::#name };
                 };
-                quote! {
-                    type #name = #quoted_return_type;
-                }
+                associated_type
             } else if let TraitName::PartialOrd { param } = &trait_name {
                 let quoted_param_or_self = match impl_for {
                     ImplFor::T => param.to_token_stream_replacing_by_self(db, Some(&trait_record)),
@@ -1767,19 +1731,16 @@ pub fn generate_function(
             }
 
             let record_name = make_rs_ident(trait_record.rs_name.identifier.as_ref());
-            let mut trait_lifetime_params = error_lifetime_param.as_slice();
             let mut assumed_lifetime_params = vec![];
-            let mut all_lifetime_params: Vec<Lifetime> = vec![];
+            let mut trait_lifetime_params: Vec<Lifetime> = vec![];
             if assume_lifetimes {
                 assumed_lifetime_params = trait_record
                     .lifetime_inputs
                     .iter()
                     .map(|id| make_rs_lifetime_ident(&*id))
                     .collect();
-                all_lifetime_params =
+                trait_lifetime_params =
                     trait_record.lifetime_inputs.iter().map(|id| Lifetime::new(&*id)).collect();
-                all_lifetime_params.extend_from_slice(trait_lifetime_params);
-                trait_lifetime_params = &all_lifetime_params;
             }
             let trait_record_param_tokens = if !assumed_lifetime_params.is_empty() {
                 quote! { < #( #assumed_lifetime_params ),* > }
@@ -1789,7 +1750,7 @@ pub fn generate_function(
 
             // NOTE: `trait_generic_params` may include lifetimes!
             let formatted_trait_generic_params =
-                format_generic_params(trait_lifetime_params, &*trait_generic_params);
+                format_generic_params(&trait_lifetime_params, &*trait_generic_params);
             let extra_items = match &trait_name {
                 TraitName::CtorNew(params) if params.len() == 1 => {
                     let single_param_ = format_tuple_except_singleton_replacing_by_self(
@@ -1876,7 +1837,13 @@ pub fn generate_function(
                 #doc_comment
                 impl #formatted_trait_generic_params #trait_name_without_trait_record for #impl_for #trait_record_param_tokens #unsatisfied_where_clause {
                     #extra_body
-                    #api_func_def
+                    #[inline(always)]
+                    #unsafety
+                    fn #bracketed_func_name #fn_generic_params(
+                        #( #api_params ),*
+                    ) #arrow #quoted_return_type {
+                        #func_body
+                    }
                     #extra_api_func_def
                 }
                 #extra_items

@@ -556,16 +556,16 @@ impl<'other> ::ctor::UnpinAssign<::ctor::RvalueReference<'other, crate::Nontrivi
     message = "binding generation for function failed\nExpected first operator== param reference to be immutable, but found mutable reference: &'a mut crate::NontrivialByValue\ncomparison operator return type must be `bool`, found: crate::NontrivialByValue"
 )]
 pub trait BindingFailedFor_ZN17NontrivialByValueeqES_ {}
-impl<'error> PartialEq for NontrivialByValue
+impl PartialEq for NontrivialByValue
 where
-    &'error (): BindingFailedFor_ZN17NontrivialByValueeqES_,
+    for<'error> &'error (): BindingFailedFor_ZN17NontrivialByValueeqES_,
 {
     #[inline(always)]
     fn eq<'a>(&'a self, other: &Self) -> bool {
         #![allow(unused_variables)]
         unreachable!(
             "This impl can never be instantiated. \
-                    If this message appears at runtime, please report a crubit.rs-bug."
+                If this message appears at runtime, please report a crubit.rs-bug."
         )
     }
 }
@@ -615,14 +615,14 @@ impl ::ctor::PinnedDrop for Nonmovable {
 )]
 pub trait BindingFailedFor_Z22TakesNonmovableByValue10Nonmovable {}
 #[inline(always)]
-pub fn TakesNonmovableByValue<'error>(nonmovable: ::ctor::Ctor![crate::Nonmovable])
+pub fn TakesNonmovableByValue(nonmovable: ::ctor::Ctor![crate::Nonmovable])
 where
-    &'error (): BindingFailedFor_Z22TakesNonmovableByValue10Nonmovable,
+    for<'error> &'error (): BindingFailedFor_Z22TakesNonmovableByValue10Nonmovable,
 {
     #![allow(unused_variables)]
     unreachable!(
         "This impl can never be instantiated. \
-                    If this message appears at runtime, please report a crubit.rs-bug."
+                If this message appears at runtime, please report a crubit.rs-bug."
     )
 }
 

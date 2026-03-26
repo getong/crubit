@@ -817,16 +817,16 @@ impl Default for AddAssignProhibitedConstMember {
     message = "binding generation for function failed\nCompound assignment with const left-hand side is not supported, found &'a crate::AddAssignProhibitedConstMember"
 )]
 pub trait BindingFailedFor_ZNK30AddAssignProhibitedConstMemberpLEi {}
-impl<'error> ::core::ops::AddAssign<::ffi_11::c_int> for AddAssignProhibitedConstMember
+impl ::core::ops::AddAssign<::ffi_11::c_int> for AddAssignProhibitedConstMember
 where
-    &'error (): BindingFailedFor_ZNK30AddAssignProhibitedConstMemberpLEi,
+    for<'error> &'error (): BindingFailedFor_ZNK30AddAssignProhibitedConstMemberpLEi,
 {
     #[inline(always)]
     fn add_assign<'a>(&'a mut self, rhs: ::ffi_11::c_int) {
         #![allow(unused_variables)]
         unreachable!(
             "This impl can never be instantiated. \
-                    If this message appears at runtime, please report a crubit.rs-bug."
+                If this message appears at runtime, please report a crubit.rs-bug."
         )
     }
 }
