@@ -4,7 +4,7 @@
 
 use googletest::prelude::*;
 use std::sync::{Arc, Mutex};
-use uses_anyinvocable::absl_functional_internal::{CallVoidVoid, ReturnIntVoid};
+use uses_anyinvocable::{CallVoidVoid, ReturnIntVoid, ReturnOptionalIntMapper};
 
 #[gtest]
 fn test_call_void_void() {
@@ -22,4 +22,11 @@ fn test_call_void_void() {
 fn test_return_int_void() {
     let f = ReturnIntVoid();
     expect_that!(f(41), eq(42));
+}
+
+#[gtest]
+fn test_return_optional_int_mapper() {
+    let f = ReturnOptionalIntMapper();
+    expect_eq!(f(Some(41)), Some(42));
+    expect_eq!(f(None), None);
 }

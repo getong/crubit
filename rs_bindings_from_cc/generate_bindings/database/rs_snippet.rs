@@ -20,8 +20,6 @@ use std::collections::HashSet;
 use std::rc::Rc;
 use token_stream_printer::write_unformatted_tokens;
 
-pub use ir::BackingType;
-
 use std::ops::Deref;
 
 const SLICE_REF_NAME_RS: &str = "&[]";
@@ -518,6 +516,17 @@ pub enum RsTypeKind {
     },
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub enum BackingType {
+    DynCallable,
+    AnyInvocable {
+        /// The name of an extern "C" function that knows how to invoke this AnyInvocable.
+        /// It is declared in Rust and defined in C++. It has the signature
+        /// `extern "C" fn(*mut RawAnyInvocable, ...) -> ...`
+        invoke_any_invocable_ident: Ident,
+    },
+}
+
 /// Information about how the owned function object may be called.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum FnTrait {
@@ -672,7 +681,15 @@ impl BridgeRsTypeKind {
             BridgeType::Callable { backing_type, fn_trait, return_type, param_types } => {
                 let target_identifier = record.owning_target.convert_to_cc_identifier();
                 BridgeRsTypeKind::Callable(Rc::new(Callable {
-                    backing_type,
+                    backing_type: match backing_type {
+                        ir::BackingType::DynCallable => BackingType::DynCallable,
+                        ir::BackingType::AnyInvocable => BackingType::AnyInvocable {
+                            invoke_any_invocable_ident: format_ident!(
+                                "__crubit_invoke_any_invocable_{}{target_identifier}",
+                                record.rs_name.identifier.as_ref(),
+                            ),
+                        },
+                    },
                     fn_trait: match fn_trait {
                         ir::FnTrait::Fn => FnTrait::Fn,
                         ir::FnTrait::FnMut => FnTrait::FnMut,

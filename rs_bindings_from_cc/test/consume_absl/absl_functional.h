@@ -7,7 +7,15 @@
 
 #include "absl/functional/any_invocable.h"
 
-namespace absl_functional_internal {
+template <typename T>
+struct                                                                     //
+    [[clang::annotate("crubit_bridge_rust_name", "MyOption")]]             //
+    [[clang::annotate("crubit_bridge_abi_rust", "MyOptionAbi")]]           //
+    [[clang::annotate("crubit_bridge_abi_cpp", "::crubit::MyOptionAbi")]]  //
+    MyOption {
+  // A hypothetical implementation would have an optional field here, but it's
+  // unnecessary for golden tests and including <optional> bloats the codegen.
+};
 
 // Calls the invocable and returns void.
 void CallVoidVoid(absl::AnyInvocable<void() &&> f);
@@ -15,6 +23,8 @@ void CallVoidVoid(absl::AnyInvocable<void() &&> f);
 // Returns an invocable that returns 42.
 absl::AnyInvocable<int(int) const> ReturnIntVoid();
 
-}  // namespace absl_functional_internal
+// Returns an AnyInvocable that takes a MyOption<int> and returns a
+// MyOption<int>.
+absl::AnyInvocable<MyOption<int>(MyOption<int>) const> MyOptionIntMapper();
 
 #endif  // THIRD_PARTY_CRUBIT_RS_BINDINGS_FROM_CC_TEST_CONSUME_ABSL_ABSL_FUNCTIONAL_H_

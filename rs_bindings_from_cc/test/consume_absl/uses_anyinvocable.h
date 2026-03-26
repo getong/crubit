@@ -5,9 +5,9 @@
 #ifndef THIRD_PARTY_CRUBIT_RS_BINDINGS_FROM_CC_TEST_CONSUME_ABSL_USES_ANYINVOCABLE_H_
 #define THIRD_PARTY_CRUBIT_RS_BINDINGS_FROM_CC_TEST_CONSUME_ABSL_USES_ANYINVOCABLE_H_
 
-#include "absl/functional/any_invocable.h"
+#include <optional>
 
-namespace absl_functional_internal {
+#include "absl/functional/any_invocable.h"
 
 // Calls the invocable and returns void.
 void CallVoidVoid(absl::AnyInvocable<void() &&> f);
@@ -15,6 +15,7 @@ void CallVoidVoid(absl::AnyInvocable<void() &&> f);
 // Returns an invocable that increments its argument.
 absl::AnyInvocable<int(int) const> ReturnIntVoid();
 
-}  // namespace absl_functional_internal
+absl::AnyInvocable<std::optional<int>(std::optional<int>) const>
+ReturnOptionalIntMapper();
 
 #endif  // THIRD_PARTY_CRUBIT_RS_BINDINGS_FROM_CC_TEST_CONSUME_ABSL_USES_ANYINVOCABLE_H_

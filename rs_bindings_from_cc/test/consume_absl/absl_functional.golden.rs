@@ -16,38 +16,54 @@
 
 extern crate alloc;
 
-pub mod absl_functional_internal {
-    /// Calls the invocable and returns void.
-    ///
-    /// Generated from: rs_bindings_from_cc/test/consume_absl/absl_functional.h;l=13
-    #[inline(always)]
-    pub fn CallVoidVoid(
-        f: ::alloc::boxed::Box<
-            dyn ::core::ops::FnOnce() + ::core::marker::Send + ::core::marker::Sync + 'static,
-        >,
-    ) {
-        unsafe {
-            crate::detail::__rust_thunk___ZN24absl_functional_internal12CallVoidVoidEN4absl12AnyInvocableIFvvOEEE(::bridge_rust::unstable_encode!(@::any_invocable::AnyInvocableAbi::<dyn::core::ops::FnOnce()+::core::marker::Send+::core::marker::Sync+'static>::new(::alloc::boxed::Box::new(||{ ::core::panic!("moved-from value") }),|managed: ::any_invocable::ManagedState,invoker: unsafe extern "C" fn()|->::alloc::boxed::Box<dyn::core::ops::FnOnce()+::core::marker::Send+::core::marker::Sync+'static>{ let c_invoker=unsafe{ ::core::mem::transmute::<unsafe extern "C" fn(),unsafe extern "C" fn(*mut::any_invocable::TypeErasedState)>(invoker) };::alloc::boxed::Box::new(move||{ unsafe{ c_invoker(managed.state()) }; }) },),::any_invocable::AnyInvocableAbi<dyn::core::ops::FnOnce()+::core::marker::Send+::core::marker::Sync+'static>,f).as_ptr()as*const u8)
-        }
-    }
+// Generated from: rs_bindings_from_cc/test/consume_absl/absl_functional.h;l=10
+// error: class `MyOption` could not be bound
+//   Class templates are not yet supported
 
-    /// Returns an invocable that returns 42.
-    ///
-    /// Generated from: rs_bindings_from_cc/test/consume_absl/absl_functional.h;l=16
-    #[inline(always)]
-    pub fn ReturnIntVoid() -> ::alloc::boxed::Box<
-        dyn ::core::ops::Fn(::ffi_11::c_int) -> ::ffi_11::c_int
-            + ::core::marker::Send
-            + ::core::marker::Sync
-            + 'static,
-    > {
-        unsafe {
-            ::bridge_rust::unstable_return!(@::any_invocable::AnyInvocableAbi::<dyn::core::ops::Fn(::ffi_11::c_int)->::ffi_11::c_int+::core::marker::Send+::core::marker::Sync+'static>::new(::alloc::boxed::Box::new(|_: ::ffi_11::c_int|->::ffi_11::c_int{ ::core::panic!("moved-from value") }),|managed: ::any_invocable::ManagedState,invoker: unsafe extern "C" fn()|->::alloc::boxed::Box<dyn::core::ops::Fn(::ffi_11::c_int)->::ffi_11::c_int+::core::marker::Send+::core::marker::Sync+'static>{ let c_invoker=unsafe{ ::core::mem::transmute::<unsafe extern "C" fn(),unsafe extern "C" fn(*mut::any_invocable::TypeErasedState,::ffi_11::c_int)->::ffi_11::c_int>(invoker) };::alloc::boxed::Box::new(move|param_0: ::ffi_11::c_int|->::ffi_11::c_int{ unsafe{ c_invoker(managed.state(),param_0) } }) },),::any_invocable::AnyInvocableAbi<dyn::core::ops::Fn(::ffi_11::c_int)->::ffi_11::c_int+::core::marker::Send+::core::marker::Sync+'static>,|__return_abi_buffer|{ crate::detail::__rust_thunk___ZN24absl_functional_internal13ReturnIntVoidEv(__return_abi_buffer,); })
-        }
+/// Calls the invocable and returns void.
+///
+/// Generated from: rs_bindings_from_cc/test/consume_absl/absl_functional.h;l=21
+#[inline(always)]
+pub fn CallVoidVoid(
+    f: ::alloc::boxed::Box<
+        dyn ::core::ops::FnOnce() + ::core::marker::Send + ::core::marker::Sync + 'static,
+    >,
+) {
+    unsafe {
+        crate::detail::__rust_thunk___Z12CallVoidVoidN4absl12AnyInvocableIFvvOEEE(::bridge_rust::unstable_encode!(@::any_invocable::AnyInvocableAbi::<dyn::core::ops::FnOnce()+::core::marker::Send+::core::marker::Sync+'static>::new(::alloc::boxed::Box::new(||{ ::core::panic!("moved-from value") }),|raw_any_invocable: ::cc_std::std::unique_ptr<::any_invocable::RawAnyInvocable>|->::alloc::boxed::Box<dyn::core::ops::FnOnce()+::core::marker::Send+::core::marker::Sync+'static>{ ::alloc::boxed::Box::new(move||{ unsafe{ crate::detail::__crubit_invoke_any_invocable___CcTemplateInstN4absl12AnyInvocableIFvvOEEE__2f_2fthird_5fparty_2fcrubit_2frs_5fbindings_5ffrom_5fcc_2ftest_2fconsume_5fabsl_3aabsl_5ffunctional(raw_any_invocable.get()) }; }) },),::any_invocable::AnyInvocableAbi<dyn::core::ops::FnOnce()+::core::marker::Send+::core::marker::Sync+'static>,f).as_ptr()as*const u8)
     }
 }
 
-// namespace absl_functional_internal
+/// Returns an invocable that returns 42.
+///
+/// Generated from: rs_bindings_from_cc/test/consume_absl/absl_functional.h;l=24
+#[inline(always)]
+pub fn ReturnIntVoid() -> ::alloc::boxed::Box<
+    dyn ::core::ops::Fn(::ffi_11::c_int) -> ::ffi_11::c_int
+        + ::core::marker::Send
+        + ::core::marker::Sync
+        + 'static,
+> {
+    unsafe {
+        ::bridge_rust::unstable_return!(@::any_invocable::AnyInvocableAbi::<dyn::core::ops::Fn(::ffi_11::c_int)->::ffi_11::c_int+::core::marker::Send+::core::marker::Sync+'static>::new(::alloc::boxed::Box::new(|_: ::ffi_11::c_int|->::ffi_11::c_int{ ::core::panic!("moved-from value") }),|raw_any_invocable: ::cc_std::std::unique_ptr<::any_invocable::RawAnyInvocable>|->::alloc::boxed::Box<dyn::core::ops::Fn(::ffi_11::c_int)->::ffi_11::c_int+::core::marker::Send+::core::marker::Sync+'static>{ ::alloc::boxed::Box::new(move|param_0: ::ffi_11::c_int|->::ffi_11::c_int{ unsafe{ crate::detail::__crubit_invoke_any_invocable___CcTemplateInstN4absl12AnyInvocableIKFiiEEE__2f_2fthird_5fparty_2fcrubit_2frs_5fbindings_5ffrom_5fcc_2ftest_2fconsume_5fabsl_3aabsl_5ffunctional(raw_any_invocable.get(),param_0) } }) },),::any_invocable::AnyInvocableAbi<dyn::core::ops::Fn(::ffi_11::c_int)->::ffi_11::c_int+::core::marker::Send+::core::marker::Sync+'static>,|__return_abi_buffer|{ crate::detail::__rust_thunk___Z13ReturnIntVoidv(__return_abi_buffer,); })
+    }
+}
+
+/// Returns an AnyInvocable that takes a MyOption<int> and returns a
+/// MyOption<int>.
+///
+/// Generated from: rs_bindings_from_cc/test/consume_absl/absl_functional.h;l=28
+#[inline(always)]
+pub fn MyOptionIntMapper() -> ::alloc::boxed::Box<
+    dyn ::core::ops::Fn(crate::MyOption<::ffi_11::c_int>) -> crate::MyOption<::ffi_11::c_int>
+        + ::core::marker::Send
+        + ::core::marker::Sync
+        + 'static,
+> {
+    unsafe {
+        ::bridge_rust::unstable_return!(@::any_invocable::AnyInvocableAbi::<dyn::core::ops::Fn(crate::MyOption<::ffi_11::c_int>)->crate::MyOption<::ffi_11::c_int>+::core::marker::Send+::core::marker::Sync+'static>::new(::alloc::boxed::Box::new(|_: crate::MyOption<::ffi_11::c_int>|->crate::MyOption<::ffi_11::c_int>{ ::core::panic!("moved-from value") }),|raw_any_invocable: ::cc_std::std::unique_ptr<::any_invocable::RawAnyInvocable>|->::alloc::boxed::Box<dyn::core::ops::Fn(crate::MyOption<::ffi_11::c_int>)->crate::MyOption<::ffi_11::c_int>+::core::marker::Send+::core::marker::Sync+'static>{ ::alloc::boxed::Box::new(move|param_0: crate::MyOption<::ffi_11::c_int>|->crate::MyOption<::ffi_11::c_int>{ ::bridge_rust::unstable_return!(@crate::MyOptionAbi(::bridge_rust::transmute_abi::<::core::ffi::c_int>()),crate::MyOptionAbi<::bridge_rust::TransmuteAbi<::core::ffi::c_int>>,|out|{ unsafe{ crate::detail::__crubit_invoke_any_invocable___CcTemplateInstN4absl12AnyInvocableIKF8MyOptionIiES2_EEE__2f_2fthird_5fparty_2fcrubit_2frs_5fbindings_5ffrom_5fcc_2ftest_2fconsume_5fabsl_3aabsl_5ffunctional(raw_any_invocable.get(),::bridge_rust::unstable_encode!(@crate::MyOptionAbi(::bridge_rust::transmute_abi::<::core::ffi::c_int>()),crate::MyOptionAbi<::bridge_rust::TransmuteAbi<::core::ffi::c_int>>,param_0).as_ptr()as*const u8,out) } }) }) },),::any_invocable::AnyInvocableAbi<dyn::core::ops::Fn(crate::MyOption<::ffi_11::c_int>)->crate::MyOption<::ffi_11::c_int>+::core::marker::Send+::core::marker::Sync+'static>,|__return_abi_buffer|{ crate::detail::__rust_thunk___Z17MyOptionIntMapperv(__return_abi_buffer,); })
+    }
+}
 
 // Generated from: nowhere/llvm/src/libcxx/include/__type_traits/integral_constant.h;l=21
 // error: struct `std::integral_constant<bool, false>` could not be bound
@@ -471,6 +487,11 @@ pub mod absl_functional_internal {
 //   template instantiation is not yet supported
 
 // Generated from: third_party/absl/functional/internal/any_invocable.h;l=413
+// error: class `absl::internal_any_invocable::CoreImpl<false, MyOption<int>, MyOption<int>>` could not be bound
+//   template instantiation is not yet supported
+//   template instantiation is not yet supported
+
+// Generated from: third_party/absl/functional/internal/any_invocable.h;l=413
 // error: class `absl::internal_any_invocable::CoreImpl<false, int, int>` could not be bound
 //   template instantiation is not yet supported
 //   template instantiation is not yet supported
@@ -484,10 +505,13 @@ mod detail {
     #[allow(unused_imports)]
     use super::*;
     unsafe extern "C" {
-        pub(crate) unsafe fn __rust_thunk___ZN24absl_functional_internal12CallVoidVoidEN4absl12AnyInvocableIFvvOEEE(
+        pub(crate) unsafe fn __rust_thunk___Z12CallVoidVoidN4absl12AnyInvocableIFvvOEEE(
             f: *const ::core::ffi::c_uchar,
         );
-        pub(crate) unsafe fn __rust_thunk___ZN24absl_functional_internal13ReturnIntVoidEv(
+        pub(crate) unsafe fn __rust_thunk___Z13ReturnIntVoidv(
+            __return_abi_buffer: *mut ::core::ffi::c_uchar,
+        );
+        pub(crate) unsafe fn __rust_thunk___Z17MyOptionIntMapperv(
             __return_abi_buffer: *mut ::core::ffi::c_uchar,
         );
     }
@@ -518,6 +542,63 @@ mod detail {
     ) {
         ::dyn_callable_rs::manager(operation, from, to);
     }
+    unsafe extern "C" {
+        pub(crate) unsafe fn __crubit_invoke_any_invocable___CcTemplateInstN4absl12AnyInvocableIFvvOEEE__2f_2fthird_5fparty_2fcrubit_2frs_5fbindings_5ffrom_5fcc_2ftest_2fconsume_5fabsl_3aabsl_5ffunctional(
+            f: *mut ::any_invocable::RawAnyInvocable,
+        );
+    }
+    #[unsafe(no_mangle)]
+    unsafe extern "C" fn __crubit_invoker___CcTemplateInstN4absl12AnyInvocableIKF8MyOptionIiES2_EEE__2f_2fthird_5fparty_2fcrubit_2frs_5fbindings_5ffrom_5fcc_2ftest_2fconsume_5fabsl_3aabsl_5ffunctional(
+        f: *mut ::alloc::boxed::Box<
+            dyn ::core::ops::Fn(
+                    crate::MyOption<::ffi_11::c_int>,
+                ) -> crate::MyOption<::ffi_11::c_int>
+                + ::core::marker::Send
+                + ::core::marker::Sync
+                + 'static,
+        >,
+        param_0: *mut ::core::ffi::c_uchar,
+        bridge_buffer: *mut ::core::ffi::c_uchar,
+    ) {
+        let param_0 = ::bridge_rust::internal::decode(
+            crate::MyOptionAbi(::bridge_rust::transmute_abi::<::core::ffi::c_int>()),
+            param_0,
+        );
+        ::bridge_rust::internal::encode(
+            crate::MyOptionAbi(::bridge_rust::transmute_abi::<::core::ffi::c_int>()),
+            bridge_buffer,
+            (unsafe { &*f })(param_0),
+        );
+    }
+    #[unsafe(no_mangle)]
+    unsafe extern "C" fn __crubit_manager___CcTemplateInstN4absl12AnyInvocableIKF8MyOptionIiES2_EEE__2f_2fthird_5fparty_2fcrubit_2frs_5fbindings_5ffrom_5fcc_2ftest_2fconsume_5fabsl_3aabsl_5ffunctional(
+        operation: ::dyn_callable_rs::FunctionToCall,
+        from: *mut ::alloc::boxed::Box<
+            dyn ::core::ops::Fn(
+                    crate::MyOption<::ffi_11::c_int>,
+                ) -> crate::MyOption<::ffi_11::c_int>
+                + ::core::marker::Send
+                + ::core::marker::Sync
+                + 'static,
+        >,
+        to: *mut ::alloc::boxed::Box<
+            dyn ::core::ops::Fn(
+                    crate::MyOption<::ffi_11::c_int>,
+                ) -> crate::MyOption<::ffi_11::c_int>
+                + ::core::marker::Send
+                + ::core::marker::Sync
+                + 'static,
+        >,
+    ) {
+        ::dyn_callable_rs::manager(operation, from, to);
+    }
+    unsafe extern "C" {
+        pub(crate) unsafe fn __crubit_invoke_any_invocable___CcTemplateInstN4absl12AnyInvocableIKF8MyOptionIiES2_EEE__2f_2fthird_5fparty_2fcrubit_2frs_5fbindings_5ffrom_5fcc_2ftest_2fconsume_5fabsl_3aabsl_5ffunctional(
+            f: *mut ::any_invocable::RawAnyInvocable,
+            param_0: *const ::core::ffi::c_uchar,
+            out: *mut ::core::ffi::c_uchar,
+        );
+    }
     #[unsafe(no_mangle)]
     unsafe extern "C" fn __crubit_invoker___CcTemplateInstN4absl12AnyInvocableIKFiiEEE__2f_2fthird_5fparty_2fcrubit_2frs_5fbindings_5ffrom_5fcc_2ftest_2fconsume_5fabsl_3aabsl_5ffunctional(
         f: *mut ::alloc::boxed::Box<
@@ -547,5 +628,11 @@ mod detail {
         >,
     ) {
         ::dyn_callable_rs::manager(operation, from, to);
+    }
+    unsafe extern "C" {
+        pub(crate) unsafe fn __crubit_invoke_any_invocable___CcTemplateInstN4absl12AnyInvocableIKFiiEEE__2f_2fthird_5fparty_2fcrubit_2frs_5fbindings_5ffrom_5fcc_2ftest_2fconsume_5fabsl_3aabsl_5ffunctional(
+            f: *mut ::any_invocable::RawAnyInvocable,
+            param_0: ::ffi_11::c_int,
+        ) -> ::ffi_11::c_int;
     }
 }

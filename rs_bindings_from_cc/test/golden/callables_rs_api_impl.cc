@@ -14,6 +14,7 @@
 
 #include <cstddef>
 #include <memory>
+#include <utility>
 
 // Public headers of the C++ library being wrapped.
 #include "rs_bindings_from_cc/test/golden/callables.h"
@@ -23,7 +24,7 @@
 
 extern "C" void
 __crubit_invoker___CcTemplateInstN6rs_std11DynCallableIFvvEEE__2f_2fthird_5fparty_2fcrubit_2frs_5fbindings_5ffrom_5fcc_2ftest_2fgolden_3acallables_5fcc(
-    ::rs_std::internal_dyn_callable::TypeErasedState* state);
+    ::absl::internal_any_invocable::TypeErasedState* state);
 extern "C" void
 __crubit_manager___CcTemplateInstN6rs_std11DynCallableIFvvEEE__2f_2fthird_5fparty_2fcrubit_2frs_5fbindings_5ffrom_5fcc_2ftest_2fgolden_3acallables_5fcc(
     ::absl::internal_any_invocable::FunctionToCall operation,
@@ -32,7 +33,7 @@ __crubit_manager___CcTemplateInstN6rs_std11DynCallableIFvvEEE__2f_2fthird_5fpart
 
 extern "C" void
 __crubit_invoker___CcTemplateInstN6rs_std11DynCallableIFvvOEEE__2f_2fthird_5fparty_2fcrubit_2frs_5fbindings_5ffrom_5fcc_2ftest_2fgolden_3acallables_5fcc(
-    ::rs_std::internal_dyn_callable::TypeErasedState* state);
+    ::absl::internal_any_invocable::TypeErasedState* state);
 extern "C" void
 __crubit_manager___CcTemplateInstN6rs_std11DynCallableIFvvOEEE__2f_2fthird_5fparty_2fcrubit_2frs_5fbindings_5ffrom_5fcc_2ftest_2fgolden_3acallables_5fcc(
     ::absl::internal_any_invocable::FunctionToCall operation,
@@ -41,7 +42,7 @@ __crubit_manager___CcTemplateInstN6rs_std11DynCallableIFvvOEEE__2f_2fthird_5fpar
 
 extern "C" void
 __crubit_invoker___CcTemplateInstN6rs_std11DynCallableIKF13ABICompatibleS1_EEE__2f_2fthird_5fparty_2fcrubit_2frs_5fbindings_5ffrom_5fcc_2ftest_2fgolden_3acallables_5fcc(
-    ::rs_std::internal_dyn_callable::TypeErasedState* state,
+    ::absl::internal_any_invocable::TypeErasedState* state,
     struct ABICompatible* param_0, struct ABICompatible* out);
 extern "C" void
 __crubit_manager___CcTemplateInstN6rs_std11DynCallableIKF13ABICompatibleS1_EEE__2f_2fthird_5fparty_2fcrubit_2frs_5fbindings_5ffrom_5fcc_2ftest_2fgolden_3acallables_5fcc(
@@ -51,7 +52,7 @@ __crubit_manager___CcTemplateInstN6rs_std11DynCallableIKF13ABICompatibleS1_EEE__
 
 extern "C" void
 __crubit_invoker___CcTemplateInstN6rs_std11DynCallableIKF16LayoutCompatibleS1_EEE__2f_2fthird_5fparty_2fcrubit_2frs_5fbindings_5ffrom_5fcc_2ftest_2fgolden_3acallables_5fcc(
-    ::rs_std::internal_dyn_callable::TypeErasedState* state,
+    ::absl::internal_any_invocable::TypeErasedState* state,
     class LayoutCompatible* param_0, class LayoutCompatible* out);
 extern "C" void
 __crubit_manager___CcTemplateInstN6rs_std11DynCallableIKF16LayoutCompatibleS1_EEE__2f_2fthird_5fparty_2fcrubit_2frs_5fbindings_5ffrom_5fcc_2ftest_2fgolden_3acallables_5fcc(
@@ -61,7 +62,7 @@ __crubit_manager___CcTemplateInstN6rs_std11DynCallableIKF16LayoutCompatibleS1_EE
 
 extern "C" void
 __crubit_invoker___CcTemplateInstN6rs_std11DynCallableIKF7BridgedS1_EEE__2f_2fthird_5fparty_2fcrubit_2frs_5fbindings_5ffrom_5fcc_2ftest_2fgolden_3acallables_5fcc(
-    ::rs_std::internal_dyn_callable::TypeErasedState* state,
+    ::absl::internal_any_invocable::TypeErasedState* state,
     unsigned char* param_0, unsigned char* out);
 extern "C" void
 __crubit_manager___CcTemplateInstN6rs_std11DynCallableIKF7BridgedS1_EEE__2f_2fthird_5fparty_2fcrubit_2frs_5fbindings_5ffrom_5fcc_2ftest_2fgolden_3acallables_5fcc(
@@ -71,7 +72,7 @@ __crubit_manager___CcTemplateInstN6rs_std11DynCallableIKF7BridgedS1_EEE__2f_2fth
 
 extern "C" int
 __crubit_invoker___CcTemplateInstN6rs_std11DynCallableIKFiiEEE__2f_2fthird_5fparty_2fcrubit_2frs_5fbindings_5ffrom_5fcc_2ftest_2fgolden_3acallables_5fcc(
-    ::rs_std::internal_dyn_callable::TypeErasedState* state, int param_0);
+    ::absl::internal_any_invocable::TypeErasedState* state, int param_0);
 extern "C" void
 __crubit_manager___CcTemplateInstN6rs_std11DynCallableIKFiiEEE__2f_2fthird_5fparty_2fcrubit_2frs_5fbindings_5ffrom_5fcc_2ftest_2fgolden_3acallables_5fcc(
     ::absl::internal_any_invocable::FunctionToCall operation,
@@ -80,7 +81,7 @@ __crubit_manager___CcTemplateInstN6rs_std11DynCallableIKFiiEEE__2f_2fthird_5fpar
 
 extern "C" void
 __crubit_invoker___CcTemplateInstN6rs_std11DynCallableIKFvvEEE__2f_2fthird_5fparty_2fcrubit_2frs_5fbindings_5ffrom_5fcc_2ftest_2fgolden_3acallables_5fcc(
-    ::rs_std::internal_dyn_callable::TypeErasedState* state);
+    ::absl::internal_any_invocable::TypeErasedState* state);
 extern "C" void
 __crubit_manager___CcTemplateInstN6rs_std11DynCallableIKFvvEEE__2f_2fthird_5fparty_2fcrubit_2frs_5fbindings_5ffrom_5fcc_2ftest_2fgolden_3acallables_5fcc(
     ::absl::internal_any_invocable::FunctionToCall operation,
@@ -94,7 +95,8 @@ extern "C" void __rust_thunk___Z11invoke_onceN6rs_std11DynCallableIFvvOEEE(
   invoke_once(
       ::rs_std::internal_dyn_callable::DynCallableAbi<void() &&>(
           __crubit_manager___CcTemplateInstN6rs_std11DynCallableIFvvOEEE__2f_2fthird_5fparty_2fcrubit_2frs_5fbindings_5ffrom_5fcc_2ftest_2fgolden_3acallables_5fcc,
-          [](::rs_std::internal_dyn_callable::TypeErasedState* state) -> void {
+          [](::absl::internal_any_invocable::TypeErasedState* state) noexcept
+              -> void {
             __crubit_invoker___CcTemplateInstN6rs_std11DynCallableIFvvOEEE__2f_2fthird_5fparty_2fcrubit_2frs_5fbindings_5ffrom_5fcc_2ftest_2fgolden_3acallables_5fcc(
                 state);
           })
@@ -110,7 +112,8 @@ extern "C" void __rust_thunk___Z6invokeN6rs_std11DynCallableIFvvEEE(
   invoke(
       ::rs_std::internal_dyn_callable::DynCallableAbi<void()>(
           __crubit_manager___CcTemplateInstN6rs_std11DynCallableIFvvEEE__2f_2fthird_5fparty_2fcrubit_2frs_5fbindings_5ffrom_5fcc_2ftest_2fgolden_3acallables_5fcc,
-          [](::rs_std::internal_dyn_callable::TypeErasedState* state) -> void {
+          [](::absl::internal_any_invocable::TypeErasedState* state) noexcept
+              -> void {
             __crubit_invoker___CcTemplateInstN6rs_std11DynCallableIFvvEEE__2f_2fthird_5fparty_2fcrubit_2frs_5fbindings_5ffrom_5fcc_2ftest_2fgolden_3acallables_5fcc(
                 state);
           })
@@ -126,7 +129,8 @@ extern "C" void __rust_thunk___Z12invoke_constN6rs_std11DynCallableIKFvvEEE(
   invoke_const(
       ::rs_std::internal_dyn_callable::DynCallableAbi<void() const>(
           __crubit_manager___CcTemplateInstN6rs_std11DynCallableIKFvvEEE__2f_2fthird_5fparty_2fcrubit_2frs_5fbindings_5ffrom_5fcc_2ftest_2fgolden_3acallables_5fcc,
-          [](::rs_std::internal_dyn_callable::TypeErasedState* state) -> void {
+          [](::absl::internal_any_invocable::TypeErasedState* state) noexcept
+              -> void {
             __crubit_invoker___CcTemplateInstN6rs_std11DynCallableIKFvvEEE__2f_2fthird_5fparty_2fcrubit_2frs_5fbindings_5ffrom_5fcc_2ftest_2fgolden_3acallables_5fcc(
                 state);
           })
@@ -144,8 +148,9 @@ extern "C" int __rust_thunk___Z7map_intN6rs_std11DynCallableIKFiiEEEi(
   return map_int(
       ::rs_std::internal_dyn_callable::DynCallableAbi<int(int) const>(
           __crubit_manager___CcTemplateInstN6rs_std11DynCallableIKFiiEEE__2f_2fthird_5fparty_2fcrubit_2frs_5fbindings_5ffrom_5fcc_2ftest_2fgolden_3acallables_5fcc,
-          [](::rs_std::internal_dyn_callable::TypeErasedState* state,
-             int param_0) -> int {
+          [](::absl::internal_any_invocable::TypeErasedState* state,
+             ::absl::internal_any_invocable::ForwardedParameterType<int>
+                 param_0) noexcept -> int {
             return __crubit_invoker___CcTemplateInstN6rs_std11DynCallableIKFiiEEE__2f_2fthird_5fparty_2fcrubit_2frs_5fbindings_5ffrom_5fcc_2ftest_2fgolden_3acallables_5fcc(
                 state, param_0);
           })
@@ -172,8 +177,10 @@ __rust_thunk___Z11map_bridgedN6rs_std11DynCallableIKF7BridgedS1_EEES1_(
           ::rs_std::internal_dyn_callable::DynCallableAbi<struct Bridged(
               struct Bridged) const>(
               __crubit_manager___CcTemplateInstN6rs_std11DynCallableIKF7BridgedS1_EEE__2f_2fthird_5fparty_2fcrubit_2frs_5fbindings_5ffrom_5fcc_2ftest_2fgolden_3acallables_5fcc,
-              [](::rs_std::internal_dyn_callable::TypeErasedState* state,
-                 struct Bridged param_0) -> struct Bridged {
+              [](::absl::internal_any_invocable::TypeErasedState* state,
+                 ::absl::internal_any_invocable::ForwardedParameterType<
+                     struct Bridged>
+                     param_0) noexcept -> struct Bridged {
                 unsigned char bridge_param_0[::crubit::BridgedAbi::kSize];
                 ::crubit::internal::Encode(::crubit::BridgedAbi(),
                                            bridge_param_0, param_0);
@@ -214,8 +221,10 @@ __rust_thunk___Z18map_abi_compatibleN6rs_std11DynCallableIKF13ABICompatibleS1_EE
       ::rs_std::internal_dyn_callable::DynCallableAbi<struct ABICompatible(
           struct ABICompatible) const>(
           __crubit_manager___CcTemplateInstN6rs_std11DynCallableIKF13ABICompatibleS1_EEE__2f_2fthird_5fparty_2fcrubit_2frs_5fbindings_5ffrom_5fcc_2ftest_2fgolden_3acallables_5fcc,
-          [](::rs_std::internal_dyn_callable::TypeErasedState* state,
-             struct ABICompatible param_0) -> struct ABICompatible {
+          [](::absl::internal_any_invocable::TypeErasedState* state,
+             ::absl::internal_any_invocable::ForwardedParameterType<
+                 struct ABICompatible>
+                 param_0) noexcept -> struct ABICompatible {
             ::crubit::Slot<struct ABICompatible> stack_param_0(
                 std::move(param_0));
             ::crubit::Slot<struct ABICompatible> out;
@@ -261,8 +270,10 @@ __rust_thunk___Z21map_layout_compatibleN6rs_std11DynCallableIKF16LayoutCompatibl
       ::rs_std::internal_dyn_callable::DynCallableAbi<class LayoutCompatible(
           class LayoutCompatible) const>(
           __crubit_manager___CcTemplateInstN6rs_std11DynCallableIKF16LayoutCompatibleS1_EEE__2f_2fthird_5fparty_2fcrubit_2frs_5fbindings_5ffrom_5fcc_2ftest_2fgolden_3acallables_5fcc,
-          [](::rs_std::internal_dyn_callable::TypeErasedState* state,
-             class LayoutCompatible param_0) -> class LayoutCompatible {
+          [](::absl::internal_any_invocable::TypeErasedState* state,
+             ::absl::internal_any_invocable::ForwardedParameterType<
+                 class LayoutCompatible>
+                 param_0) noexcept -> class LayoutCompatible {
             ::crubit::Slot<class LayoutCompatible> stack_param_0(
                 std::move(param_0));
             ::crubit::Slot<class LayoutCompatible> out;

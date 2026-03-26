@@ -9,29 +9,29 @@ use crubit_abi_type::{
 };
 use database::db::BindingsGenerator;
 use database::rs_snippet::{BackingType, Callable, FnTrait, PassingConvention, RsTypeKind};
-use proc_macro2::TokenStream;
+use proc_macro2::{Ident, TokenStream};
 use quote::{format_ident, quote};
 
 pub const CRUBIT_ANY_INVOCABLE_SUPPORT_HEADER: Option<&str> =
     option_env!("CRUBIT_ANY_INVOCABLE_SUPPORT_HEADER");
 
 /// Generates the `CrubitAbiType` for callables.
-pub fn dyn_callable_crubit_abi_type(
+pub fn callable_crubit_abi_type(
     db: &BindingsGenerator,
     callable: &Callable,
 ) -> Result<CrubitAbiType> {
-    if callable.backing_type == BackingType::AnyInvocable
-        && CRUBIT_ANY_INVOCABLE_SUPPORT_HEADER.is_none()
+    if let (BackingType::AnyInvocable { .. }, None) =
+        (&callable.backing_type, CRUBIT_ANY_INVOCABLE_SUPPORT_HEADER)
     {
         bail!("absl::AnyInvocable appears in the C++ API, but CRUBIT_ANY_INVOCABLE_SUPPORT_HEADER is not set. It should be set as a path to a .h file.");
     }
     let dyn_fn_spelling = callable.dyn_fn_spelling(db);
 
-    let rust_type_tokens = match callable.backing_type {
+    let rust_type_tokens = match &callable.backing_type {
         BackingType::DynCallable => quote! {
             ::dyn_callable_rs::DynCallableAbi<#dyn_fn_spelling>
         },
-        BackingType::AnyInvocable => quote! {
+        BackingType::AnyInvocable { .. } => quote! {
             ::any_invocable::AnyInvocableAbi<#dyn_fn_spelling>
         },
     };
@@ -48,14 +48,15 @@ pub fn dyn_callable_crubit_abi_type(
         }
     };
 
-    let rust_expr_tokens = match callable.backing_type {
+    let rust_expr_tokens = match &callable.backing_type {
         BackingType::DynCallable => quote! {
             ::dyn_callable_rs::DynCallableAbi::<#dyn_fn_spelling>::new(
                 #on_empty_tokens,
             )
         },
-        BackingType::AnyInvocable => {
-            let make_cpp_invoker_tokens = generate_make_cpp_invoker_tokens(db, callable)?;
+        BackingType::AnyInvocable { invoke_any_invocable_ident } => {
+            let make_cpp_invoker_tokens =
+                generate_make_cpp_invoker_tokens(db, callable, invoke_any_invocable_ident)?;
             quote! {
                 ::any_invocable::AnyInvocableAbi::<#dyn_fn_spelling>::new(
                     #on_empty_tokens,
@@ -80,11 +81,11 @@ pub fn dyn_callable_crubit_abi_type(
     let cpp_fn_sig = quote! {
         #cpp_return_type(#(#cpp_param_types),*) #qualifier
     };
-    let cpp_type_tokens = match callable.backing_type {
+    let cpp_type_tokens = match &callable.backing_type {
         BackingType::DynCallable => quote! {
             ::rs_std::internal_dyn_callable::DynCallableAbi<#cpp_fn_sig>
         },
-        BackingType::AnyInvocable => quote! {
+        BackingType::AnyInvocable { .. } => quote! {
             ::crubit::AnyInvocableAbi<#cpp_fn_sig>
         },
     };
@@ -94,7 +95,6 @@ pub fn dyn_callable_crubit_abi_type(
             generate_invoker_function_pointer(db, callable, &cpp_param_types, &cpp_return_type)?;
         let manager_ident = &callable.manager_ident;
 
-        // Construct the DynCallableAbi value with a pointer to the invoker function.
         quote! {
             #cpp_type_tokens(
                 #manager_ident,
@@ -117,9 +117,9 @@ pub fn dyn_callable_crubit_abi_type(
 ///
 /// ```cpp
 /// [](
-///     ::rs_std::internal_dyn_callable::TypeErasedState* state
-///     P...,
-/// ) -> R {
+///     ::absl::internal_any_invocable::TypeErasedState* state
+///     ::absl::internal_any_invocable::ForwardedParameterType<P>...,
+/// ) noexcept -> R {
 ///     // impl
 /// }
 /// ```
@@ -127,8 +127,7 @@ pub fn dyn_callable_crubit_abi_type(
 /// This lambda accepts and returns idiomatic C++ values, and is responsible for preparing arguments
 /// to be passed to Rust via the C ABI, invoking a statically-known forward-declared thunk which
 /// is linked to a Rust definition, and then converting the return value back into an idiomatic C++
-/// value. In the case that all inputs and outputs are C-compatible by value, this lambda is simply
-/// a pointer to the thunk.
+/// value.
 fn generate_invoker_function_pointer(
     db: &BindingsGenerator,
     callable: &Callable,
@@ -236,11 +235,11 @@ fn generate_invoker_function_pointer(
 
     Ok(quote! {
         [](
-            ::rs_std::internal_dyn_callable::TypeErasedState* state
+            ::absl::internal_any_invocable::TypeErasedState* state
             #(
-                , #cpp_param_types #param_idents
+                , ::absl::internal_any_invocable::ForwardedParameterType<#cpp_param_types> #param_idents
             )*
-        ) -> #cpp_return_type {
+        ) noexcept -> #cpp_return_type {
             #arg_transforms
 
             #invoke_ffi_and_transform_to_cpp
@@ -257,13 +256,13 @@ fn generate_invoker_function_pointer(
 fn generate_make_cpp_invoker_tokens(
     db: &BindingsGenerator,
     callable: &Callable,
+    invoke_any_invocable_ident: &Ident,
 ) -> Result<TokenStream> {
     let param_idents =
         (0..callable.param_types.len()).map(|i| format_ident!("param_{i}")).collect::<Vec<_>>();
     let rust_param_types = callable.param_types.iter().map(|param_ty| param_ty.to_token_stream(db));
     let rust_return_type_fragment = callable.rust_return_type_fragment(db);
 
-    let mut c_param_types = Vec::with_capacity(callable.param_types.len());
     let mut arg_exprs = Vec::with_capacity(callable.param_types.len());
     // We are the caller
     for (i, param_ty) in callable.param_types.iter().enumerate() {
@@ -271,12 +270,9 @@ fn generate_make_cpp_invoker_tokens(
 
         match param_ty.passing_convention() {
             PassingConvention::AbiCompatible => {
-                c_param_types.push(param_ty.to_token_stream(db));
                 arg_exprs.push(quote! { #param_ident });
             }
             PassingConvention::LayoutCompatible => {
-                let param_ty_tokens = param_ty.to_token_stream(db);
-                c_param_types.push(quote! { &mut #param_ty_tokens });
                 arg_exprs.push(quote! { &mut #param_ident });
             }
             PassingConvention::ComposablyBridged => {
@@ -285,7 +281,6 @@ fn generate_make_cpp_invoker_tokens(
                 let crubit_abi_type_expr_tokens = CrubitAbiTypeToRustExprTokens(&crubit_abi_type);
                 // For arguments that are bridge types, we encode the
                 // Rust value into a buffer and then the argument is a pointer to that buffer.
-                c_param_types.push(quote! { *const u8 });
                 arg_exprs.push(quote! {
                     ::bridge_rust::unstable_encode!(@ #crubit_abi_type_expr_tokens, #crubit_abi_type_tokens, #param_ident)
                         .as_ptr() as *const u8
@@ -295,7 +290,6 @@ fn generate_make_cpp_invoker_tokens(
                 bail!("Ctor not supported");
             }
             PassingConvention::OwnedPtr => {
-                c_param_types.push(param_ty.to_token_stream_with_owned_ptr_type(db));
                 arg_exprs.push(quote! {
                     // SAFETY: Transmuting from a repr(transparent) struct that wraps the pointer.
                     unsafe { ::core::mem::transmute(#param_ident) }
@@ -305,35 +299,26 @@ fn generate_make_cpp_invoker_tokens(
         }
     }
 
-    // What the extern "C" function should return.
-    let mut c_return_type_fragment = None;
-    // Set c_return_type_fragment, or push an out param, or nothing if void.
+    // Prepare an out param for the return value.
     match callable.return_type.passing_convention() {
-        PassingConvention::AbiCompatible => {
-            let c_return_type = callable.return_type.to_token_stream(db);
-            c_return_type_fragment = Some(quote! { -> #c_return_type });
-        }
+        PassingConvention::AbiCompatible => {}
         PassingConvention::Void => {}
         PassingConvention::LayoutCompatible => {
-            let return_type_tokens = callable.return_type.to_token_stream(db);
-            c_param_types.push(quote! { *mut #return_type_tokens });
-            arg_exprs.push(quote! { &raw mut out });
+            arg_exprs.push(quote! { out });
         }
         PassingConvention::ComposablyBridged => {
-            c_param_types.push(quote! { *mut u8 });
-            arg_exprs.push(quote! { &raw mut out });
+            arg_exprs.push(quote! { out });
         }
         PassingConvention::Ctor => {
             bail!("Ctor not supported");
         }
-        PassingConvention::OwnedPtr => {
-            let c_return_type = callable.return_type.to_token_stream_with_owned_ptr_type(db);
-            c_return_type_fragment = Some(quote! { -> #c_return_type });
-        }
+        PassingConvention::OwnedPtr => {}
     };
 
     let mut invoke_ffi_and_transform_to_rust = quote! {
-        unsafe { c_invoker(managed.state() #(, #arg_exprs)*) }
+        unsafe {
+            crate::detail::#invoke_any_invocable_ident(raw_any_invocable.get() #(, #arg_exprs)*)
+        }
     };
 
     match callable.return_type.passing_convention() {
@@ -377,20 +362,16 @@ fn generate_make_cpp_invoker_tokens(
     let dyn_fn_spelling = callable.dyn_fn_spelling(db);
 
     Ok(quote! {
-        |managed: ::any_invocable::ManagedState,
-         invoker: unsafe extern "C" fn()| -> ::alloc::boxed::Box<#dyn_fn_spelling> {
-            let c_invoker = unsafe {
-                ::core::mem::transmute::<
-                    unsafe extern "C" fn(),
-                    unsafe extern "C" fn(
-                        *mut ::any_invocable::TypeErasedState
-                        #( , #c_param_types )*
-                    ) #c_return_type_fragment
-                >(invoker)
-            };
-            ::alloc::boxed::Box::new(move |#( #param_idents: #rust_param_types ),*| #rust_return_type_fragment {
-                #invoke_ffi_and_transform_to_rust
-            })
+        |raw_any_invocable: ::cc_std::std::unique_ptr<::any_invocable::RawAnyInvocable>|
+            -> ::alloc::boxed::Box<#dyn_fn_spelling>
+        {
+            ::alloc::boxed::Box::new(
+                move |#( #param_idents: #rust_param_types ),*|
+                    #rust_return_type_fragment
+                {
+                    #invoke_ffi_and_transform_to_rust
+                }
+            )
          }
     })
 }

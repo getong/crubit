@@ -7,8 +7,8 @@ use arc_anyhow::{anyhow, ensure, Context, Result};
 use code_gen_utils::{format_cc_includes, is_cpp_reserved_keyword, make_rs_ident, CcInclude};
 use cpp_type_name::format_cpp_type_with_references;
 use crubit_abi_type::{
-    CrubitAbiType, CrubitAbiTypeToCppTokens, CrubitAbiTypeToRustExprTokens,
-    CrubitAbiTypeToRustTokens, FullyQualifiedPath,
+    CrubitAbiType, CrubitAbiTypeToCppExprTokens, CrubitAbiTypeToCppTokens,
+    CrubitAbiTypeToRustExprTokens, CrubitAbiTypeToRustTokens, FullyQualifiedPath,
 };
 use crubit_feature::CrubitFeature;
 use database::code_snippet::{
@@ -17,8 +17,8 @@ use database::code_snippet::{
 };
 use database::db::{BindingsGenerator, CodegenFunctions};
 use database::rs_snippet::{
-    BridgeRsTypeKind, Callable, FnTrait, Mutability, PassingConvention, RsTypeKind, RustPtrKind,
-    Safety,
+    BackingType, BridgeRsTypeKind, Callable, FnTrait, Mutability, PassingConvention, RsTypeKind,
+    RustPtrKind, Safety,
 };
 use dyn_format::Format;
 use error_report::{bail, ErrorReporting, ReportFatalError};
@@ -435,6 +435,8 @@ pub fn generate_bindings_tokens(
         snippets.append(db.generate_item(item.clone())?);
     }
 
+    let mut internal_includes = BTreeSet::new();
+
     let (callables_rs_api_impl, callables_rs_api): (TokenStream, TokenStream) = {
         // Since Idents are not free, we reuse them across records.
         let mut param_idents_buffer = vec![];
@@ -472,21 +474,49 @@ pub fn generate_bindings_tokens(
                 // If generate_dyn_callable_invoker_and_manager_decls fails, skip. We don't need to generate a nice
                 // error because whoever uses this will also fail and generate an error at the relevant
                 // site.
-                let cpp_api =
-                    generate_dyn_callable_invoker_and_manager_decls(&db, &callable, param_idents)?;
-                let rust_api =
+                let mut cpp_api = generate_dyn_callable_invoker_and_manager_decls(
+                    &db,
+                    &callable,
+                    param_idents,
+                    &mut internal_includes,
+                )?;
+                let mut rust_api =
                     generate_dyn_callable_invoker_and_manager_defs(&db, &callable, param_idents)?;
+
+                if let BackingType::AnyInvocable { invoke_any_invocable_ident } =
+                    &callable.backing_type
+                {
+                    rust_api.extend(generate_any_invocable_invoker_decl(
+                        &db,
+                        &callable,
+                        param_idents,
+                        invoke_any_invocable_ident,
+                    )?);
+                    cpp_api.extend(generate_any_invocable_invoker_def(
+                        &db,
+                        &callable,
+                        param_idents,
+                        invoke_any_invocable_ident,
+                        &mut internal_includes,
+                    )?);
+                }
+
+                internal_includes.insert(CcInclude::SupportLibHeader(
+                    crubit_support_path_format.clone(),
+                    "rs_std/dyn_callable.h".into(),
+                ));
 
                 Some((cpp_api, rust_api))
             })
             .unzip()
     };
 
-    let has_callables = !callables_rs_api.is_empty();
-
     // Callables use `Box<dyn F>`.
-    let extern_crate_alloc =
-        has_callables.then(|| quote! { extern crate alloc; __NEWLINE__ __NEWLINE__  });
+    let extern_crate_alloc = {
+        let has_callables = !callables_rs_api.is_empty();
+
+        has_callables.then(|| quote! { extern crate alloc; __NEWLINE__ __NEWLINE__  })
+    };
 
     // when we go through the main_api, we want to go through one at a time.
     // if the parent is none, we're responsible.
@@ -506,7 +536,7 @@ pub fn generate_bindings_tokens(
     );
 
     let cc_details = CppDetails {
-        includes: generate_rs_api_impl_includes(&db, crubit_support_path_format, has_callables),
+        includes: generate_rs_api_impl_includes(&db, crubit_support_path_format, internal_includes),
         dyn_callable_cpp_decls: callables_rs_api_impl,
         thunks: cc_details,
     };
@@ -786,11 +816,10 @@ fn record_safety(db: &BindingsGenerator, record: Rc<Record>) -> Safety {
 fn generate_rs_api_impl_includes(
     db: &BindingsGenerator,
     crubit_support_path_format: Format<1>,
-    has_callables: bool,
+    mut internal_includes: BTreeSet<CcInclude>,
 ) -> CppIncludes {
     let ir = db.ir();
 
-    let mut internal_includes = BTreeSet::new();
     internal_includes.insert(CcInclude::memory()); // ubiquitous.
     if ir.records().next().is_some() {
         internal_includes.insert(CcInclude::cstddef());
@@ -799,13 +828,6 @@ fn generate_rs_api_impl_includes(
             "internal/sizeof.h".into(),
         ));
     };
-
-    if has_callables {
-        internal_includes.insert(CcInclude::SupportLibHeader(
-            crubit_support_path_format.clone(),
-            "rs_std/dyn_callable.h".into(),
-        ));
-    }
 
     let crubit_any_invocable_support_header =
         generate_dyn_callable::CRUBIT_ANY_INVOCABLE_SUPPORT_HEADER.map(Rc::<str>::from);
@@ -834,7 +856,7 @@ fn generate_rs_api_impl_includes(
                     ));
                 }
                 BridgeRsTypeKind::Callable(callable)
-                    if callable.backing_type == BackingType::AnyInvocable =>
+                    if matches!(&callable.backing_type, BackingType::AnyInvocable { .. }) =>
                 {
                     if let Some(crubit_any_invocable_support_header) =
                         &crubit_any_invocable_support_header
@@ -1078,7 +1100,7 @@ fn crubit_abi_type(db: &BindingsGenerator, rs_type_kind: RsTypeKind) -> Result<C
                         .contains(CrubitFeature::Callables),
                     "callables (e.g. `AnyInvocable`) are not yet supported",
                 );
-                generate_dyn_callable::dyn_callable_crubit_abi_type(db, &callable)
+                generate_dyn_callable::callable_crubit_abi_type(db, &callable)
             }
             BridgeRsTypeKind::C9Co { result_type, .. } => {
                 let result_type_tokens = if result_type.is_void() {
@@ -1196,6 +1218,7 @@ fn generate_dyn_callable_invoker_and_manager_decls(
     db: &BindingsGenerator,
     callable: &Callable,
     param_idents: &[Ident],
+    internal_includes: &mut BTreeSet<CcInclude>,
 ) -> Option<TokenStream> {
     assert!(
         param_idents.len() == callable.param_types.len(),
@@ -1233,6 +1256,9 @@ fn generate_dyn_callable_invoker_and_manager_decls(
                 cpp_type_name::format_cpp_type(&callable.return_type, db).ok()?;
         }
         PassingConvention::LayoutCompatible => {
+            // For std::move in the invoker impl.
+            internal_includes.insert(CcInclude::utility());
+
             let return_type_tokens =
                 cpp_type_name::format_cpp_type(&callable.return_type, db).ok()?;
             out_param = Some(quote! { , #return_type_tokens* out });
@@ -1259,7 +1285,7 @@ fn generate_dyn_callable_invoker_and_manager_decls(
 
     Some(quote! {
         extern "C" #decl_return_type_tokens #invoker_ident(
-            ::rs_std::internal_dyn_callable::TypeErasedState* state
+            ::absl::internal_any_invocable::TypeErasedState* state
             #params
             #out_param
         );
@@ -1431,6 +1457,266 @@ fn generate_dyn_callable_invoker_and_manager_defs(
         ) {
             ::dyn_callable_rs::manager(operation, from, to);
         }
+    })
+}
+
+/// Generates a unique Rust declaration of an extern "C" function for invoking an AnyInvocable.
+///
+/// This roughly has the form:
+/// ```rust
+/// unsafe extern "C" {
+///     pub(crate) unsafe fn __crubit_invoke_any_invocable_some_mangled_name(
+///         f: *mut ::any_invocable::RawAnyInvocable,
+///         /*FFI compatible params + out param if necessary*/
+///     ) -> RetType;
+/// }
+/// ```
+///
+/// This declaration allows Rust to invoke the AnyInvocable, and is used by preparing the arguments
+/// for FFI, passing them and the AnyInvocable to this declaration, where it lands in a C++ defined
+/// function generated by `generate_any_invocable_invoker_def`. That definition then translates the
+/// arguments from their FFI representation to their C++ representation, invokes the AnyInvocable,
+/// and translates the result back to an FFI representation, which is returned to the callee of this
+/// declaration.
+///
+/// `None` is returned if there is issue generating the declaration. The specific error is not
+/// reported because it will be reported elsewhere.
+fn generate_any_invocable_invoker_decl(
+    db: &BindingsGenerator,
+    callable: &Callable,
+    param_idents: &[Ident],
+    invoke_any_invocable_ident: &Ident,
+) -> Option<TokenStream> {
+    assert_eq!(
+        param_idents.len(),
+        callable.param_types.len(),
+        "crubit.rs-bug: param_idents and param_types should have the same length."
+    );
+
+    let params = param_idents
+        .iter()
+        .zip(callable.param_types.iter())
+        .map(|(param_ident, param_type)| -> Option<TokenStream> {
+            match param_type.passing_convention() {
+                PassingConvention::AbiCompatible | PassingConvention::OwnedPtr => {
+                    let param_type_tokens = param_type.to_token_stream(db);
+                    Some(quote! { #param_ident: #param_type_tokens, })
+                }
+                PassingConvention::LayoutCompatible => {
+                    let param_type_tokens = param_type.to_token_stream(db);
+                    Some(quote! { #param_ident: *mut #param_type_tokens, })
+                }
+                PassingConvention::ComposablyBridged => {
+                    Some(quote! { #param_ident: *const ::core::ffi::c_uchar, })
+                }
+                PassingConvention::Ctor => None,
+                PassingConvention::Void => unreachable!("parameter types cannot be void"),
+            }
+        })
+        .collect::<Option<TokenStream>>()?;
+
+    let out_param;
+    let return_type_fragment;
+    match callable.return_type.passing_convention() {
+        PassingConvention::AbiCompatible | PassingConvention::OwnedPtr => {
+            let return_type_tokens = callable.return_type.to_token_stream(db);
+
+            out_param = None;
+            return_type_fragment = Some(quote! { -> #return_type_tokens });
+        }
+        PassingConvention::LayoutCompatible => {
+            let return_type_tokens = callable.return_type.to_token_stream(db);
+
+            out_param = Some(quote! { out: *mut #return_type_tokens, });
+            return_type_fragment = None;
+        }
+        PassingConvention::ComposablyBridged => {
+            out_param = Some(quote! { out: *mut ::core::ffi::c_uchar, });
+            return_type_fragment = None;
+        }
+        PassingConvention::Ctor => {
+            return None;
+        }
+        PassingConvention::Void => {
+            out_param = None;
+            return_type_fragment = None;
+        }
+    }
+
+    Some(quote! {
+        unsafe extern "C" {
+            pub(crate) unsafe fn #invoke_any_invocable_ident(
+                f: *mut ::any_invocable::RawAnyInvocable,
+                #params
+                #out_param
+            ) #return_type_fragment;
+        }
+    })
+}
+
+/// Generates a unique C++ definition of an extern "C" function for invoking an AnyInvocable.
+///
+/// This roughly has the form:
+/// ```c++
+/// extern "C" RetType __crubit_invoke_any_invocable_some_mangled_name(
+///     absl::AnyInvocable<Sig>* f,
+///     /*FFI compatible params + out param if necessary*/
+/// ) {
+///     /*invoke the AnyInvocable*/
+/// }
+/// ```
+///
+/// The generated function has an equivalent Rust declaration generated by
+/// `generate_any_invocable_invoker_decl`, which allows Rust to invoke this generated function.
+///
+/// `None` is returned if there is issue generating the definition. The specific error is not
+/// reported because it will be reported elsewhere.
+fn generate_any_invocable_invoker_def(
+    db: &BindingsGenerator,
+    callable: &Callable,
+    param_idents: &[Ident],
+    invoke_any_invocable_ident: &Ident,
+    internal_includes: &mut BTreeSet<CcInclude>,
+) -> Option<TokenStream> {
+    assert_eq!(
+        param_idents.len(),
+        callable.param_types.len(),
+        "crubit.rs-bug: param_idents and param_types should have the same length."
+    );
+    let mut arg_exprs = Vec::with_capacity(param_idents.len());
+    let params = param_idents
+        .iter()
+        .zip(callable.param_types.iter())
+        .map(|(param_ident, param_type)| -> Option<TokenStream> {
+            match param_type.passing_convention() {
+                PassingConvention::AbiCompatible => {
+                    arg_exprs.push(quote! { #param_ident });
+                    let param_type_tokens =
+                        cpp_type_name::format_cpp_type(param_type, db).ok()?;
+                    Some(quote! { , #param_type_tokens #param_ident })
+                }
+                PassingConvention::LayoutCompatible => {
+                    // include utility for std::move.
+                    internal_includes.insert(CcInclude::utility());
+                    arg_exprs.push(quote! { std::move(*#param_ident) });
+                    let param_type_tokens =
+                        cpp_type_name::format_cpp_type(param_type, db).ok()?;
+                    Some(quote! { , #param_type_tokens* #param_ident })
+                }
+                PassingConvention::ComposablyBridged => {
+                    let crubit_abi_type =
+                        db.crubit_abi_type(RsTypeKind::clone(param_type)).ok()?;
+                    let crubit_abi_type_tokens = CrubitAbiTypeToCppTokens(&crubit_abi_type);
+                    let crubit_abi_type_expr_tokens = CrubitAbiTypeToCppExprTokens(&crubit_abi_type);
+                    arg_exprs.push(quote! { ::crubit::internal::Decode<#crubit_abi_type_tokens>(#crubit_abi_type_expr_tokens, #param_ident) });
+                    Some(quote! { , unsigned char* #param_ident })
+                }
+                PassingConvention::Ctor => None,
+                PassingConvention::OwnedPtr => None,
+                PassingConvention::Void => unreachable!("parameter types cannot be void"),
+            }
+        })
+        .collect::<Option<TokenStream>>()?;
+
+    let unwrapper = match callable.fn_trait {
+        FnTrait::Fn | FnTrait::FnMut => quote! { (*f) },
+        FnTrait::FnOnce => {
+            // include utility for std::move.
+            internal_includes.insert(CcInclude::utility());
+            quote! { std::move(*f) }
+        }
+    };
+
+    let mut invoke_rust_and_return_to_ffi = quote! {
+        #unwrapper(#(#arg_exprs),*)
+    };
+
+    let decl_return_type_tokens;
+    let out_param;
+    match callable.return_type.passing_convention() {
+        PassingConvention::AbiCompatible => {
+            invoke_rust_and_return_to_ffi = quote! {
+                return #invoke_rust_and_return_to_ffi;
+            };
+
+            decl_return_type_tokens =
+                cpp_type_name::format_cpp_type(&callable.return_type, db).ok()?;
+            out_param = None;
+        }
+        PassingConvention::LayoutCompatible => {
+            let return_type_tokens =
+                cpp_type_name::format_cpp_type(&callable.return_type, db).ok()?;
+
+            invoke_rust_and_return_to_ffi = quote! {
+                new (out) #return_type_tokens(#invoke_rust_and_return_to_ffi);
+            };
+
+            out_param = Some(quote! { , #return_type_tokens* out });
+            decl_return_type_tokens = quote! { void };
+        }
+        PassingConvention::ComposablyBridged => {
+            let crubit_abi_type = db.crubit_abi_type(callable.return_type.as_ref().clone()).ok()?;
+            let crubit_abi_type_expr_tokens = CrubitAbiTypeToCppExprTokens(&crubit_abi_type);
+            invoke_rust_and_return_to_ffi = quote! {
+                ::crubit::internal::Encode(
+                    #crubit_abi_type_expr_tokens,
+                    out,
+                    #invoke_rust_and_return_to_ffi
+                );
+            };
+
+            decl_return_type_tokens = quote! { void };
+            out_param = Some(quote! { , unsigned char* out });
+        }
+        PassingConvention::Ctor => {
+            return None;
+        }
+        PassingConvention::OwnedPtr => {
+            return None;
+        }
+        PassingConvention::Void => {
+            // Put a semicolon at the end to clarify that we do not return anything.
+            invoke_rust_and_return_to_ffi = quote! {
+                #invoke_rust_and_return_to_ffi;
+            };
+
+            decl_return_type_tokens = quote! { void };
+            out_param = None;
+        }
+    }
+
+    let any_invocable_sig_spelling = any_invocable_sig_spelling(callable, db).ok()?;
+
+    Some(quote! {
+        extern "C" #decl_return_type_tokens #invoke_any_invocable_ident(
+            ::absl::AnyInvocable<#any_invocable_sig_spelling>* f
+            #params
+            #out_param
+        ) {
+            #invoke_rust_and_return_to_ffi
+        }
+    })
+}
+
+/// Returns a `TokenStream` in the shape of C++ type signature of the given callable, e.g.
+/// `int(double, char) const`.
+///
+/// An error is returned if there is issue generating the declaration. The specific error is not
+/// reported because it will be reported elsewhere.
+fn any_invocable_sig_spelling(callable: &Callable, db: &BindingsGenerator) -> Result<TokenStream> {
+    let return_type_tokens = cpp_type_name::format_cpp_type(&callable.return_type, db)?;
+    let param_type_tokens = callable
+        .param_types
+        .iter()
+        .map(|param_ty| cpp_type_name::format_cpp_type(param_ty, db))
+        .collect::<Result<Vec<TokenStream>>>()?;
+    let qual = match callable.fn_trait {
+        FnTrait::Fn => quote! { const },
+        FnTrait::FnMut => quote! {},
+        FnTrait::FnOnce => quote! { && },
+    };
+    Ok(quote! {
+        #return_type_tokens(#(#param_type_tokens),*) #qual
     })
 }
 
