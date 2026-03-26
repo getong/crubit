@@ -310,15 +310,6 @@ fn specialize_option<'tcx>(
         .resolve_feature_requirements(crate::crate_features(db, db.source_crate_num()))?
         .into_tokens(&mut prereqs);
     let layout = get_layout(tcx, self_ty).expect("We've already checked this layout is valid");
-    let ty::TyKind::Adt(adt, _) = self_ty.kind() else {
-        unreachable!("Option<T> must be an ADT");
-    };
-    let needs_drop = self_ty.needs_drop(tcx, post_analysis_typing_env(tcx, adt.did()));
-    let name = escape_non_identifier_chars(&format!("{}", self_ty));
-
-    let OptionVariantIndices { some_idx, none_idx } = get_option_variant_indices(tcx, *adt);
-
-    prereqs.includes.insert(CcInclude::optional());
 
     let (tag, tag_encoding, tag_field, variants) = match layout.variants() {
         rustc_abi::Variants::Empty => {
@@ -339,6 +330,16 @@ fn specialize_option<'tcx>(
     let tag_type = tag.primitive().to_int_ty(tcx);
     let tag_type_cc: TokenStream =
         db.format_ty_for_cc(tag_type, TypeLocation::Other)?.into_tokens(&mut prereqs);
+    let arg_ty_for_rs = db.format_ty_for_rs(arg_ty)?;
+
+    let ty::TyKind::Adt(adt, _) = self_ty.kind() else {
+        unreachable!("Option<T> must be an ADT");
+    };
+    let needs_drop = self_ty.needs_drop(tcx, post_analysis_typing_env(tcx, adt.did()));
+
+    let OptionVariantIndices { some_idx, none_idx } = get_option_variant_indices(tcx, *adt);
+
+    prereqs.includes.insert(CcInclude::optional());
     let tag_offset = Literal::u64_unsuffixed(layout.fields().offset(tag_field.as_usize()).bytes());
 
     let endian = tcx.sess.target.options.endian;
@@ -424,14 +425,14 @@ fn specialize_option<'tcx>(
     let ty::TyKind::Adt(adt, _) = self_ty.kind() else {
         unreachable!("Option<T> must be an ADT");
     };
-    let arg_ty_for_rs = db.format_ty_for_rs(arg_ty)?;
     let rs_fully_qualified_name = quote! { std::option::Option<#arg_ty_for_rs> };
+    let cc_fully_qualified_name = quote! { rs_std::Option<#ty_tokens> };
     let core = Rc::new(database::AdtCoreBindings {
         def_id: adt.did(),
         keyword: quote! { struct },
         cc_short_name: format_ident!("Option"),
         rs_fully_qualified_name: rs_fully_qualified_name.clone(),
-        cc_fully_qualified_name: quote! { rs_std::Option<#ty_tokens> },
+        cc_fully_qualified_name: cc_fully_qualified_name.clone(),
         self_ty,
         alignment_in_bytes: layout.align().abi.bytes(),
         size_in_bytes: layout.size().bytes(),
@@ -456,6 +457,8 @@ fn specialize_option<'tcx>(
     .collect();
     let main_api_tokens = main_api.into_tokens(&mut prereqs);
 
+    let qualified_name = cc_fully_qualified_name.to_string();
+    let name = escape_non_identifier_chars(&qualified_name);
     let guard_name = format_ident!("_CRUBIT_BINDINGS_FOR_{}", name);
     let size_literal = Literal::u64_unsuffixed(layout.size().bytes());
     let align_literal = Literal::u64_unsuffixed(layout.align().abi.bytes());
@@ -791,12 +794,6 @@ fn specialize_result<'tcx>(
         .into_tokens(&mut prereqs);
 
     let layout = get_layout(tcx, self_ty).expect("We've already checked this layout is valid");
-    let ty::TyKind::Adt(adt, _) = self_ty.kind() else {
-        unreachable!("Result<T, E> must be an ADT");
-    };
-
-    let ResultVariantIndices { ok_idx, err_idx } = get_result_variant_indices(tcx, *adt);
-
     let (tag, tag_encoding, tag_field, variants) = match layout.variants() {
         rustc_abi::Variants::Empty => {
             unreachable!(
@@ -816,9 +813,17 @@ fn specialize_result<'tcx>(
             (tag, tag_encoding, tag_field, variants)
         }
     };
+
     let tag_type = tag.primitive().to_int_ty(tcx);
     let tag_type_cc: TokenStream =
         db.format_ty_for_cc(tag_type, TypeLocation::Other)?.into_tokens(&mut prereqs);
+    let arg_ty_for_rs = db.format_ty_for_rs(ok_ty)?;
+    let err_ty_for_rs = db.format_ty_for_rs(err_ty)?;
+
+    let ty::TyKind::Adt(adt, _) = self_ty.kind() else {
+        unreachable!("Result<T, E> must be an ADT");
+    };
+    let ResultVariantIndices { ok_idx, err_idx } = get_result_variant_indices(tcx, *adt);
     let tag_offset = Literal::u64_unsuffixed(layout.fields().offset(tag_field.as_usize()).bytes());
     let endian = tcx.sess.target.options.endian;
     let byte_index_read = match endian {
@@ -856,7 +861,6 @@ fn specialize_result<'tcx>(
 
     let needs_drop = self_ty.needs_drop(tcx, post_analysis_typing_env(tcx, adt.did()));
 
-    let name = escape_non_identifier_chars(&format!("{}", self_ty));
     let discr_for_ok = self_ty.discriminant_for_variant(tcx, ok_idx).expect(
         "We do not support zero sized types. Before generating a specialization, we\
          check that the type can be formatted as a C++ type. That should exclude this case \
@@ -951,16 +955,15 @@ fn specialize_result<'tcx>(
             }
         }
     };
-    let arg_ty_for_rs = db.format_ty_for_rs(ok_ty)?;
-    let err_ty_for_rs = db.format_ty_for_rs(err_ty)?;
 
     let rs_fully_qualified_name = quote! { std::result::Result<#arg_ty_for_rs, #err_ty_for_rs> };
+    let cc_fully_qualified_name = quote! { rs_std::Result<#ok_ty_tokens, #err_ty_tokens> };
     let core = Rc::new(database::AdtCoreBindings {
         def_id: adt.did(),
         keyword: quote! { struct },
         cc_short_name: format_ident!("Result"),
         rs_fully_qualified_name: rs_fully_qualified_name.clone(),
-        cc_fully_qualified_name: quote! { rs_std::Result<#ok_ty_tokens, #err_ty_tokens> },
+        cc_fully_qualified_name: cc_fully_qualified_name.clone(),
         self_ty,
         alignment_in_bytes: layout.align().abi.bytes(),
         size_in_bytes: layout.size().bytes(),
@@ -983,6 +986,8 @@ fn specialize_result<'tcx>(
     .collect();
     let main_api_tokens = main_api.into_tokens(&mut prereqs);
 
+    let qualified_name = cc_fully_qualified_name.to_string();
+    let name = escape_non_identifier_chars(&qualified_name);
     let guard_name = format_ident!("_CRUBIT_BINDINGS_FOR_{}", name);
     let size_literal = Literal::u64_unsuffixed(layout.size().bytes());
     let align_literal = Literal::u64_unsuffixed(layout.align().abi.bytes());

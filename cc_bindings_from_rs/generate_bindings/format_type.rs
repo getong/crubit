@@ -137,6 +137,28 @@ fn format_transparent_pointee_or_reference_for_cc<'tcx>(
     format_pointer_or_reference_ty_for_cc(db, referent, mutability, pointer_sigil).ok()
 }
 
+/// Checks that the tag of a type, if present, is C++ compatible. This will fail when the tag is a
+/// u128 or other unsupported type.
+fn validate_tag_ty_for_cc<'tcx>(
+    db: &BindingsGenerator<'tcx>,
+    ty: Ty<'tcx>,
+) -> Result<Option<CcSnippet<'tcx>>> {
+    use rustc_abi::Variants;
+    use rustc_middle::ty::layout::PrimitiveExt;
+
+    let tcx = db.tcx();
+    let layout = get_layout(tcx, ty)?;
+    match layout.variants() {
+        Variants::Empty => Ok(None),
+        Variants::Single { .. } => Ok(None),
+        Variants::Multiple { tag, .. } => {
+            let tag_type = tag.primitive().to_int_ty(tcx);
+            let tag_type_cc = db.format_ty_for_cc(tag_type, TypeLocation::Other)?;
+            Ok(Some(tag_type_cc))
+        }
+    }
+}
+
 /// Implementation of `BindingsGenerator::format_ty_for_cc`.
 pub fn format_ty_for_cc<'tcx>(
     db: &BindingsGenerator<'tcx>,
@@ -304,6 +326,8 @@ pub fn format_ty_for_cc<'tcx>(
                                 db.source_crate_num(),
                             ))?
                             .into_tokens(&mut prereqs);
+                        // We just want to make sure the tag will work.
+                        let _ = validate_tag_ty_for_cc(db, ty)?;
                         prereqs.template_specializations.insert(
                             TemplateSpecialization::RsStdOption { arg_ty: arg, self_ty: ty },
                         );
@@ -330,7 +354,8 @@ pub fn format_ty_for_cc<'tcx>(
                                 db.source_crate_num(),
                             ))?
                             .into_tokens(&mut prereqs);
-
+                        // We just want to make sure the tag will work.
+                        let _ = validate_tag_ty_for_cc(db, ty)?;
                         prereqs.template_specializations.insert(
                             TemplateSpecialization::RsStdResult { ok_ty, err_ty, self_ty: ty },
                         );
