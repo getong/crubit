@@ -228,6 +228,12 @@ impl core::fmt::Debug for string_wrapper {
     }
 }
 
+impl core::fmt::Display for string_wrapper {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        self.display().fmt(f)
+    }
+}
+
 // Allow converting a cc_std::std::string_wrapper reference to a "real" C++ string pointer.
 
 type StringSymbol = forward_declare::symbol!(
