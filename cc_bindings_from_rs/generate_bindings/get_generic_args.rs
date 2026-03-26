@@ -5,6 +5,7 @@
 use crate::liberate_and_deanonymize_late_bound_regions;
 use arc_anyhow::{anyhow, bail, ensure, Result};
 use database::BindingsGenerator;
+use rustc_infer::infer::{InferCtxt, RegionVariableOrigin};
 use rustc_infer::traits::{Obligation, ObligationCause};
 use rustc_middle::ty::{self, Ty, TyCtxt};
 use rustc_span::def_id::DefId;
@@ -80,6 +81,7 @@ pub fn get_generic_args<'tcx>(
 fn get_replacement_for_trait_predicate<'tcx>(
     tcx: TyCtxt<'tcx>,
     trait_predicate: ty::TraitPredicate<'tcx>,
+    new_anon_lifetime: impl Fn() -> ty::Region<'tcx>,
 ) -> Option<Ty<'tcx>> {
     if trait_predicate.polarity != ty::PredicatePolarity::Positive {
         return None;
@@ -90,10 +92,6 @@ fn get_replacement_for_trait_predicate<'tcx>(
     // we typically want the first and only other generic argument - `U`.
     let ty1 = trait_ref.args.get(1).and_then(|generic_arg| generic_arg.as_type())?;
 
-    // See `replace_all_regions_with_static` for rationale for using the `'static` lifetime.
-    // TODO(b/495521049): Consider using an anonymous lifetime instead.
-    let static_lifetime = tcx.lifetimes.re_static;
-
     // `T: Into<U>` => `U`
     if tcx.is_diagnostic_item(sym::Into, trait_ref.def_id) {
         return Some(ty1);
@@ -101,12 +99,12 @@ fn get_replacement_for_trait_predicate<'tcx>(
 
     // `T: AsRef<U>` => `&U`
     if tcx.is_diagnostic_item(sym::AsRef, trait_ref.def_id) {
-        return Some(Ty::new_imm_ref(tcx, static_lifetime, ty1));
+        return Some(Ty::new_imm_ref(tcx, new_anon_lifetime(), ty1));
     }
 
     // `T: AsMut<U>` => `&mut U`
     if tcx.is_diagnostic_item(sym::AsMut, trait_ref.def_id) {
-        return Some(Ty::new_mut_ref(tcx, static_lifetime, ty1));
+        return Some(Ty::new_mut_ref(tcx, new_anon_lifetime(), ty1));
     }
 
     // TODO(b/281542952): Implement other replacements as needed.
@@ -116,12 +114,13 @@ fn get_replacement_for_trait_predicate<'tcx>(
 /// Returns `true` if `new_ty` can be used as a replacement for `generic_param`
 /// in a generic item identified by `def_id` and constrained by the given `predicates`.
 fn is_valid_replacement_for_generic_type_param<'tcx>(
-    tcx: TyCtxt<'tcx>,
+    infcx: &InferCtxt<'tcx>,
     def_id: DefId,
     predicates: ty::GenericPredicates<'tcx>,
     generic_param: &ty::GenericParamDef,
     new_ty: Ty<'tcx>,
 ) -> bool {
+    let tcx = infcx.tcx;
     let generic_args = ty::GenericArgs::for_item(tcx, def_id, |param_def, _old_generic_args| {
         if param_def.index == generic_param.index {
             new_ty.into()
@@ -130,7 +129,6 @@ fn is_valid_replacement_for_generic_type_param<'tcx>(
         }
     });
 
-    let infcx = tcx.infer_ctxt().build(TypingMode::non_body_analysis());
     let ocx = ObligationCtxt::new(&infcx);
     let param_env = tcx.param_env(def_id);
     for (predicate, _span) in predicates.instantiate(tcx, generic_args) {
@@ -166,12 +164,18 @@ fn get_replacement_for_generic_type_param<'tcx>(
             _ => false,
         });
 
+    let infcx = tcx.infer_ctxt().build(TypingMode::non_body_analysis());
+    let new_anon_lifetime =
+        || infcx.next_region_var(RegionVariableOrigin::Coercion(tcx.def_span(def_id)));
+
     // Find the first replacement that fits all the constraints.
     trait_predicates_for_this_generic_param
-        .filter_map(|trait_predicate| get_replacement_for_trait_predicate(tcx, trait_predicate))
+        .filter_map(|trait_predicate| {
+            get_replacement_for_trait_predicate(tcx, trait_predicate, new_anon_lifetime)
+        })
         .find(|new_ty| {
             is_valid_replacement_for_generic_type_param(
-                tcx,
+                &infcx,
                 def_id,
                 predicates,
                 generic_type_param,

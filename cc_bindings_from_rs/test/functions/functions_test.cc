@@ -163,7 +163,7 @@ TEST(GenericFnTest, AsRefTraitTests) {
   EXPECT_EQ(333, result[2]);
 
   tests::MyStruct my_struct = tests::MyStruct::new_(123);
-  EXPECT_EQ(123, tests::struct_ref(&my_struct));
+  EXPECT_EQ(123, tests::struct_ref(my_struct));
 }
 
 TEST(GenericFnTest, IntoTraitTests) {

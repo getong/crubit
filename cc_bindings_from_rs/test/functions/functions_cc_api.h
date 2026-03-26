@@ -224,8 +224,7 @@ std::int32_t static_lifetime_requirement(
 // Generated from:
 // cc_bindings_from_rs/test/functions/functions.rs;l=263
 std::int32_t struct_ref(
-    ::functions::generic_fn_tests::as_ref_trait_tests::MyStruct const* $static
-        crubit_nonnull arg);
+    ::functions::generic_fn_tests::as_ref_trait_tests::MyStruct const& arg);
 
 }  // namespace functions::generic_fn_tests::as_ref_trait_tests
 
@@ -516,12 +515,10 @@ inline std::int32_t static_lifetime_requirement(
 
 namespace __crubit_internal {
 extern "C" std::int32_t __crubit_thunk_struct_uref(
-    ::functions::generic_fn_tests::as_ref_trait_tests::MyStruct const* $static
-        crubit_nonnull);
+    ::functions::generic_fn_tests::as_ref_trait_tests::MyStruct const&);
 }
 inline std::int32_t struct_ref(
-    ::functions::generic_fn_tests::as_ref_trait_tests::MyStruct const* $static
-        crubit_nonnull arg) {
+    ::functions::generic_fn_tests::as_ref_trait_tests::MyStruct const& arg) {
   return __crubit_internal::__crubit_thunk_struct_uref(arg);
 }
 
