@@ -213,6 +213,7 @@ pub fn new_database<'db>(
         symbol_unqualified_name,
         symbol_canonical_name,
         public_paths_by_def_id,
+        all_public_paths_by_def_id,
         format_cc_ident_symbol,
         format_top_level_ns_for_crate,
         format_type::format_ty_for_cc,
@@ -230,6 +231,7 @@ pub fn new_database<'db>(
         crubit_abi_type_from_ty,
         from_trait_impls_by_argument,
         get_generic_args::get_generic_args,
+        renamed_crate_original_name,
     )
 }
 
@@ -477,6 +479,7 @@ fn public_paths_by_def_id(
             name: child.ident.name,
             type_alias_def_id,
             is_doc_hidden,
+            krate: crate_num,
         };
         use std::collections::hash_map::Entry;
         match visible_parent_map.entry(def_id) {
@@ -511,6 +514,52 @@ fn public_paths_by_def_id(
     }
 
     visible_parent_map
+}
+
+fn all_public_paths_by_def_id(db: &BindingsGenerator<'_>) -> HashMap<DefId, PublicPaths> {
+    let tcx = db.tcx();
+    let mut out = HashMap::new();
+
+    // TODO(b/458768435): LOCAL_CRATE is not included in list of `used_crates`, so while we still have
+    // `--enable-rmeta-interface` (and some users that are not on the rmeta interface) we need to
+    // manually add it to the list of considered crates.
+    for krate in
+        std::iter::once(LOCAL_CRATE).chain(tcx.used_crates(()).iter().cloned()).filter(|&krate|
+        // Check if our krate can be imported (and so should provide public paths for DefIds).
+        krate == db.source_crate_num()
+            || db.crate_name_to_include_paths().contains_key(db.renamed_crate_original_name(krate)
+                .unwrap_or_else(|| Rc::from(tcx.crate_name(krate).as_str())).as_ref())
+            // TODO - b/391443811: We don't need this workaround once we depend on `std`, `core`,
+            // and `alloc` implicitly.
+            || {
+                let sym = tcx.crate_name(krate);
+                let name = sym.as_str();
+                name == "std" || name == "core" || name == "alloc" || name == "proc_macro"
+            })
+    {
+        let public_paths = db.public_paths_by_def_id(krate);
+        for (def_id, mut paths) in public_paths {
+            use std::collections::hash_map::Entry;
+            match out.entry(def_id) {
+                Entry::Vacant(vacant) => {
+                    vacant.insert(paths);
+                }
+                Entry::Occupied(mut occupied) => {
+                    let existing_paths = occupied.get_mut();
+                    if def_id.krate == existing_paths.canonical().krate {
+                        existing_paths.insert_aliases(paths);
+                    } else if def_id.krate == paths.canonical().krate {
+                        std::mem::swap(existing_paths, &mut paths);
+                        existing_paths.insert_aliases(paths);
+                    } else {
+                        existing_paths.merge(paths);
+                        // Merge paths together picking canonical by ordering.
+                    }
+                }
+            }
+        }
+    }
+    out
 }
 
 fn module_children(tcx: TyCtxt<'_>, parent: DefId) -> &[ModChild] {
@@ -561,6 +610,17 @@ fn symbol_unqualified_name(db: &BindingsGenerator<'_>, def_id: DefId) -> Option<
     Some(UnqualifiedName { cpp_name, rs_name, cpp_type })
 }
 
+fn renamed_crate_original_name(db: &BindingsGenerator<'_>, krate_id: CrateNum) -> Option<Rc<str>> {
+    let tcx = db.tcx();
+    let crate_name = tcx.crate_name(krate_id);
+    for (name, renamed) in db.crate_renames().iter() {
+        if renamed.as_ref() == crate_name.as_str() {
+            return Some(name.clone());
+        }
+    }
+    return None;
+}
+
 /// Implementation of `BindingsGenerator::symbol_canonical_name`.
 fn symbol_canonical_name(db: &BindingsGenerator<'_>, def_id: DefId) -> Option<FullyQualifiedName> {
     let tcx = db.tcx();
@@ -570,13 +630,8 @@ fn symbol_canonical_name(db: &BindingsGenerator<'_>, def_id: DefId) -> Option<Fu
     // canonical name.
     let def_id = resolve_if_use(db, def_id).unwrap_or(def_id);
 
-    let (full_path_strs, type_alias_def_id) = {
-        // If our definition is at a path that can't be spelled, we have to pick a path from our
-        // aliases.
-        let paths = db.public_paths_by_def_id(def_id.krate);
-
-        // If our definition has no public spellings, we can't give it a canonical name.
-        let paths = paths.get(&def_id)?;
+    let (full_path_strs, type_alias_def_id, krate_id) = {
+        let paths = db.all_public_paths_by_def_id().get(&def_id).cloned()?;
 
         // Select a canonical path for this symbol from available paths.
         // Our paths are kept in sorted order, so the canonical path will be the first one.
@@ -587,17 +642,18 @@ fn symbol_canonical_name(db: &BindingsGenerator<'_>, def_id: DefId) -> Option<Fu
         (
             canonical_path.path.iter().map(|s| Rc::<str>::from(s.as_str())).collect::<Vec<_>>(),
             canonical_path.type_alias_def_id,
+            canonical_path.krate,
         )
     };
 
     let unqualified = type_alias_def_id
-        .and_then(|def_id| {
+        .and_then(|alias_def_id| {
             use crubit_attr::CrubitAttrs;
-            let attrs = crubit_attr::get_attrs(tcx, def_id).unwrap();
-            if attrs == CrubitAttrs::default() {
+            let attrs = crubit_attr::get_attrs(tcx, alias_def_id).unwrap();
+            if attrs == CrubitAttrs::default() && def_id.krate == alias_def_id.krate {
                 None
             } else {
-                db.symbol_unqualified_name(def_id)
+                db.symbol_unqualified_name(alias_def_id)
             }
         })
         .or_else(|| db.symbol_unqualified_name(def_id))?;
@@ -607,11 +663,11 @@ fn symbol_canonical_name(db: &BindingsGenerator<'_>, def_id: DefId) -> Option<Fu
     // to include the `_rust_proto` suffix, but the rmeta file contains the unsuffixed crate name.
     // If we're naming a symbol from our source crate, use the source crate name as the krate name
     // to resolve any renaming issues.
-    let krate = (def_id.krate == db.source_crate_num())
+    let krate = (krate_id == db.source_crate_num())
         .then_some(())
         .and_then(|_| db.source_crate_name())
         .map(|source_crate_name| Symbol::intern(source_crate_name.as_ref()))
-        .unwrap_or_else(|| tcx.crate_name(def_id.krate));
+        .unwrap_or_else(|| tcx.crate_name(krate_id));
 
     if krate.as_str() == "polars_plan"
         && matches!(unqualified.rs_name.as_str(), "date_range" | "time_range")
@@ -643,7 +699,7 @@ fn symbol_canonical_name(db: &BindingsGenerator<'_>, def_id: DefId) -> Option<Fu
     let rs_mod_path = NamespaceQualifier::new(full_path_strs.clone());
     let cpp_ns_path =
         NamespaceQualifier::new(full_path_strs.into_iter().map(rename_clang_builtin_macros));
-    let cpp_top_level_ns = format_top_level_ns_for_crate(db, def_id.krate);
+    let cpp_top_level_ns = format_top_level_ns_for_crate(db, krate_id);
     Some(FullyQualifiedName { krate, cpp_top_level_ns, cpp_ns_path, rs_mod_path, unqualified })
 }
 

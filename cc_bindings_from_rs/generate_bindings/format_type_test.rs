@@ -341,7 +341,7 @@ fn test_format_ty_for_cc_successes() {
                         ty,
                         TypeLocation::FnParam { is_self_param: false, elided_is_output: false },
                     )
-                    .unwrap();
+                    .unwrap_or_else(|e| panic!("Failed to format type {}: {}", ty, e));
                 (s.tokens.to_string(), s.prereqs)
             };
             let (actual_includes, actual_prereq_defs, actual_prereq_fwd_decls) =

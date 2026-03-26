@@ -160,6 +160,17 @@ memoized::query_group! {
       /// Implementation: cc_bindings_from_rs/generate_bindings/lib.rs?q=function:public_paths_by_def_id
       fn public_paths_by_def_id(&self, crate_num: CrateNum) -> HashMap<DefId, PublicPaths>;
 
+      /// Computes a mapping from a `DefId` to a list of public paths that reference it in the
+      /// crate graph. Paths are only considered if they are from the source crate or they have a
+      /// `--crate-header` specifying their bindings. Usually, this will mean the current crate and
+      /// direct dependencies.
+      ///
+      /// Paths from the crate that defines a definition are preferred for the canonical path. A
+      /// re-export of a definition will only be used if the defining crate has no paths.
+      ///
+      /// Implementation: cc_bindings_from_rs/generate_bindings/lib.rs?q=function:all_public_paths_by_def_id
+      fn all_public_paths_by_def_id(&self) -> HashMap<DefId, PublicPaths>;
+
       /// Formats a C++ identifier, if possible.
       ///
       /// Implementation: cc_bindings_from_rs/generate_bindings/format_type.rs?q=function:format_cc_ident
@@ -308,5 +319,8 @@ memoized::query_group! {
       /// the generic arguments that should be used in the generated Crubit bindings.
       /// Fails if any of the generic parameters cannot be replaced with a concrete type.
       fn get_generic_args(&self, fn_def_id: DefId) -> Result<ty::GenericArgsRef<'tcx>>;
+
+      // Returns the original name of a crate, if it has been renamed.
+      fn renamed_crate_original_name(&self, crate_num: CrateNum) -> Option<Rc<str>>;
   }
 }

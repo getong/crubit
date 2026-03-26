@@ -9,7 +9,7 @@ use arc_anyhow::Result;
 use code_gen_utils::{format_cc_type_name, make_rs_ident, NamespaceQualifier};
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
-use rustc_span::def_id::DefId;
+use rustc_span::def_id::{CrateNum, DefId};
 use rustc_span::symbol::Symbol;
 use std::rc::Rc;
 
@@ -122,6 +122,8 @@ pub struct ExportedPath {
     /// True if any segment of this path is marked #[doc(hidden)] making it a less preferable path
     /// than any non-hidden path regardless of length.
     pub is_doc_hidden: bool,
+    /// The crate that defines this path.
+    pub krate: CrateNum,
 }
 
 impl From<&ExportedPath> for NamespaceQualifier {
@@ -184,6 +186,23 @@ impl PublicPaths {
         if let Err(index) = self.aliases.binary_search(&alias) {
             self.aliases.insert(index, alias);
         }
+    }
+
+    pub fn insert_aliases(&mut self, other: Self) {
+        let other_aliases = if other.canonical_path == self.canonical_path {
+            other.aliases
+        } else {
+            other.into_extern_aliases()
+        };
+        let self_aliases = std::mem::take(&mut self.aliases);
+        self.aliases = itertools::kmerge(vec![self_aliases, other_aliases]).collect();
+    }
+
+    pub fn merge(&mut self, mut other: Self) {
+        if self.canonical_path < other.canonical_path {
+            std::mem::swap(&mut self.canonical_path, &mut other.canonical_path);
+        }
+        self.insert_aliases(other);
     }
 
     pub fn canonical(&self) -> &ExportedPath {
