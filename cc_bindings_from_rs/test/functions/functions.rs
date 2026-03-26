@@ -205,7 +205,7 @@ pub mod generic_fn_tests {
     }
 
     pub mod as_ref_trait_tests {
-        pub fn sum(arg: impl AsRef<[i32]>) -> i32 {
+        pub fn slice_ref_sum(arg: impl AsRef<[i32]>) -> i32 {
             arg.as_ref().iter().sum()
         }
 
@@ -216,7 +216,7 @@ pub mod generic_fn_tests {
         /// a conflict would be caught somehow.  The test never failed, so it's unclear how
         /// useful it is.
         #[allow(clippy::needless_lifetimes)]
-        pub fn sum3<'a, 'b>(
+        pub fn diverse_lifetimes<'a, 'b>(
             arg1: &[i32],
             arg2: &'a [i32],
             arg3: impl AsRef<[i32]>,
@@ -238,11 +238,30 @@ pub mod generic_fn_tests {
         ///
         /// Today the error doesn't happen in Crubit, because the thunks explicitly
         /// declare all their lifetimes as `'static` - see `fn replace_all_regions_with_static`.
-        pub fn static_sum<T>(arg: T) -> i32
+        pub fn static_lifetime_requirement<T>(arg: T) -> i32
         where
             T: AsRef<[i32]> + 'static,
         {
             arg.as_ref().iter().sum()
+        }
+
+        #[repr(transparent)]
+        pub struct MyStruct(i32);
+
+        impl MyStruct {
+            pub fn new(x: i32) -> Self {
+                MyStruct(x)
+            }
+        }
+
+        impl AsRef<MyStruct> for MyStruct {
+            fn as_ref(&self) -> &MyStruct {
+                self
+            }
+        }
+
+        pub fn struct_ref(arg: impl AsRef<MyStruct>) -> i32 {
+            arg.as_ref().0
         }
     }
 

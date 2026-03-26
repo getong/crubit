@@ -88,24 +88,48 @@ unsafe extern "C" fn __crubit_thunk_set_umut_uref_uto_usum_uof_uints(
 unsafe extern "C" fn __crubit_thunk_prefix_usums(arg: &'static mut [i32]) -> () {
     unsafe { ::functions_golden::generic_fn_tests::as_mut_trait_tests::prefix_sums(arg) }
 }
+const _: () = assert!(
+    ::std::mem::size_of::<::functions_golden::generic_fn_tests::as_ref_trait_tests::MyStruct>()
+        == 4
+);
+const _: () = assert!(
+    ::std::mem::align_of::<::functions_golden::generic_fn_tests::as_ref_trait_tests::MyStruct>()
+        == 4
+);
 #[unsafe(no_mangle)]
-unsafe extern "C" fn __crubit_thunk_static_usum(arg: &'static [i32]) -> i32 {
-    unsafe { ::functions_golden::generic_fn_tests::as_ref_trait_tests::static_sum(arg) }
+unsafe extern "C" fn __crubit_thunk_new(
+    x: i32,
+) -> ::functions_golden::generic_fn_tests::as_ref_trait_tests::MyStruct {
+    unsafe { ::functions_golden::generic_fn_tests::as_ref_trait_tests::MyStruct::new(x) }
 }
 #[unsafe(no_mangle)]
-unsafe extern "C" fn __crubit_thunk_sum(arg: &'static [i32]) -> i32 {
-    unsafe { ::functions_golden::generic_fn_tests::as_ref_trait_tests::sum(arg) }
-}
-#[unsafe(no_mangle)]
-unsafe extern "C" fn __crubit_thunk_sum3(
+unsafe extern "C" fn __crubit_thunk_diverse_ulifetimes(
     arg1: &'static [i32],
     arg2: &'static [i32],
     arg3: &'static [i32],
     result: &'static mut [i32],
 ) -> () {
     unsafe {
-        ::functions_golden::generic_fn_tests::as_ref_trait_tests::sum3(arg1, arg2, arg3, result)
+        ::functions_golden::generic_fn_tests::as_ref_trait_tests::diverse_lifetimes(
+            arg1, arg2, arg3, result,
+        )
     }
+}
+#[unsafe(no_mangle)]
+unsafe extern "C" fn __crubit_thunk_slice_uref_usum(arg: &'static [i32]) -> i32 {
+    unsafe { ::functions_golden::generic_fn_tests::as_ref_trait_tests::slice_ref_sum(arg) }
+}
+#[unsafe(no_mangle)]
+unsafe extern "C" fn __crubit_thunk_static_ulifetime_urequirement(arg: &'static [i32]) -> i32 {
+    unsafe {
+        ::functions_golden::generic_fn_tests::as_ref_trait_tests::static_lifetime_requirement(arg)
+    }
+}
+#[unsafe(no_mangle)]
+unsafe extern "C" fn __crubit_thunk_struct_uref(
+    arg: &'static ::functions_golden::generic_fn_tests::as_ref_trait_tests::MyStruct,
+) -> i32 {
+    unsafe { ::functions_golden::generic_fn_tests::as_ref_trait_tests::struct_ref(arg) }
 }
 #[unsafe(no_mangle)]
 unsafe extern "C" fn __crubit_thunk_basic_utest(arg: i32) -> i32 {

@@ -147,19 +147,23 @@ TEST(GenericFnTest, AsMutTraitBasicTest) {
 TEST(GenericFnTest, AsRefTraitTests) {
   namespace tests = functions::generic_fn_tests::as_ref_trait_tests;
   std::vector<int32_t> vec = {1, 2, 3};
-  EXPECT_EQ(1 + 2 + 3, tests::sum(rs_std::SliceRef<const int32_t>{vec}));
+  EXPECT_EQ(1 + 2 + 3,
+            tests::slice_ref_sum(rs_std::SliceRef<const int32_t>{vec}));
 
   std::vector<int32_t> vec1 = {1, 2, 3};
   std::vector<int32_t> vec2 = {10, 20, 30};
   std::vector<int32_t> vec3 = {100, 200, 300};
   std::vector<int32_t> result = {0, 0, 0};
-  tests::sum3(rs_std::SliceRef<const int32_t>{vec1},
-              rs_std::SliceRef<const int32_t>{vec2},
-              rs_std::SliceRef<const int32_t>{vec3},
-              rs_std::SliceRef<int32_t>{result});
+  tests::diverse_lifetimes(rs_std::SliceRef<const int32_t>{vec1},
+                           rs_std::SliceRef<const int32_t>{vec2},
+                           rs_std::SliceRef<const int32_t>{vec3},
+                           rs_std::SliceRef<int32_t>{result});
   EXPECT_EQ(111, result[0]);
   EXPECT_EQ(222, result[1]);
   EXPECT_EQ(333, result[2]);
+
+  tests::MyStruct my_struct = tests::MyStruct::new_(123);
+  EXPECT_EQ(123, tests::struct_ref(&my_struct));
 }
 
 TEST(GenericFnTest, IntoTraitTests) {

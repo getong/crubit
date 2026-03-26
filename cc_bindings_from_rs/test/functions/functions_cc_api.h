@@ -19,12 +19,16 @@
 #include "support/annotations_internal.h"
 #include "support/internal/check_no_mutable_aliasing.h"
 #include "support/internal/cxx20_backports.h"
+#include "support/internal/slot.h"
 #include "support/lifetime_annotations.h"
 #include "support/rs_std/char.h"
 #include "support/rs_std/slice_ref.h"
 
 #include <array>
+#include <cstddef>
 #include <cstdint>
+#include <cstring>
+#include <type_traits>
 
 namespace functions::fn_abi_tests {
 
@@ -141,27 +145,51 @@ void set_mut_ref_to_sum_of_ints(std::int32_t& sum, std::int32_t x,
 namespace functions::generic_fn_tests::as_mut_trait_tests {
 
 // Generated from:
-// cc_bindings_from_rs/test/functions/functions.rs;l=250
+// cc_bindings_from_rs/test/functions/functions.rs;l=269
 void prefix_sums(rs_std::SliceRef<std::int32_t> arg);
 
 }  // namespace functions::generic_fn_tests::as_mut_trait_tests
 
 namespace functions::generic_fn_tests::as_ref_trait_tests {
 
-//  This is an attempt to trigger an error seen in
-//  https://play.rust-lang.org/?version=stable&mode=debug&edition=2024&gist=42303eaaafe4a3538ad259e9e9b67f05
-//
-//  Today the error doesn't happen in Crubit, because the thunks explicitly
-//  declare all their lifetimes as `'static` - see `fn
-//  replace_all_regions_with_static`.
-//
 // Generated from:
-// cc_bindings_from_rs/test/functions/functions.rs;l=241
-std::int32_t static_sum(rs_std::SliceRef<const std::int32_t> arg);
+// cc_bindings_from_rs/test/functions/functions.rs;l=249
+struct CRUBIT_INTERNAL_RUST_TYPE(
+    ":: functions_golden :: generic_fn_tests :: as_ref_trait_tests :: "
+    "MyStruct") alignas(4) [[clang::trivial_abi]] MyStruct final {
+ public:
+  // `functions_golden::generic_fn_tests::as_ref_trait_tests::MyStruct` doesn't
+  // implement the `Default` trait
+  MyStruct() = delete;
 
-// Generated from:
-// cc_bindings_from_rs/test/functions/functions.rs;l=208
-std::int32_t sum(rs_std::SliceRef<const std::int32_t> arg);
+  // No custom `Drop` impl and no custom "drop glue" required
+  ~MyStruct() = default;
+  MyStruct(MyStruct&&) = default;
+  MyStruct& operator=(MyStruct&&) = default;
+
+  // `functions_golden::generic_fn_tests::as_ref_trait_tests::MyStruct` doesn't
+  // implement the `Clone` trait
+  MyStruct(const MyStruct&) = delete;
+  MyStruct& operator=(const MyStruct&) = delete;
+  MyStruct(::crubit::UnsafeRelocateTag, MyStruct&& value) {
+    std::memcpy(this, &value, sizeof(value));
+  }
+
+  // Generated from:
+  // cc_bindings_from_rs/test/functions/functions.rs;l=252
+  static ::functions::generic_fn_tests::as_ref_trait_tests::MyStruct new_(
+      std::int32_t x);
+
+ private:
+  union {
+    // Generated from:
+    // cc_bindings_from_rs/test/functions/functions.rs;l=249
+    std::int32_t __field0;
+  };
+
+ private:
+  static void __crubit_field_offset_assertions();
+};
 
 //  The substitution `impl AsRef<[i32]>` => `&[u32]` needs to "conjure" a new,
 //  late-bound lifetime/region.  The test below is an ad-hoc attempt to test
@@ -172,10 +200,32 @@ std::int32_t sum(rs_std::SliceRef<const std::int32_t> arg);
 //
 // Generated from:
 // cc_bindings_from_rs/test/functions/functions.rs;l=219
-void sum3(rs_std::SliceRef<const std::int32_t> arg1,
-          rs_std::SliceRef<const std::int32_t> arg2,
-          rs_std::SliceRef<const std::int32_t> arg3,
-          rs_std::SliceRef<std::int32_t> result);
+void diverse_lifetimes(rs_std::SliceRef<const std::int32_t> arg1,
+                       rs_std::SliceRef<const std::int32_t> arg2,
+                       rs_std::SliceRef<const std::int32_t> arg3,
+                       rs_std::SliceRef<std::int32_t> result);
+
+// Generated from:
+// cc_bindings_from_rs/test/functions/functions.rs;l=208
+std::int32_t slice_ref_sum(rs_std::SliceRef<const std::int32_t> arg);
+
+//  This is an attempt to trigger an error seen in
+//  https://play.rust-lang.org/?version=stable&mode=debug&edition=2024&gist=42303eaaafe4a3538ad259e9e9b67f05
+//
+//  Today the error doesn't happen in Crubit, because the thunks explicitly
+//  declare all their lifetimes as `'static` - see `fn
+//  replace_all_regions_with_static`.
+//
+// Generated from:
+// cc_bindings_from_rs/test/functions/functions.rs;l=241
+std::int32_t static_lifetime_requirement(
+    rs_std::SliceRef<const std::int32_t> arg);
+
+// Generated from:
+// cc_bindings_from_rs/test/functions/functions.rs;l=263
+std::int32_t struct_ref(
+    ::functions::generic_fn_tests::as_ref_trait_tests::MyStruct const* $static
+        crubit_nonnull arg);
 
 }  // namespace functions::generic_fn_tests::as_ref_trait_tests
 
@@ -406,39 +456,73 @@ inline void prefix_sums(rs_std::SliceRef<std::int32_t> arg) {
 
 namespace functions::generic_fn_tests::as_ref_trait_tests {
 
+static_assert(
+    sizeof(MyStruct) == 4,
+    "Verify that ADT layout didn't change since this header got generated");
+static_assert(
+    alignof(MyStruct) == 4,
+    "Verify that ADT layout didn't change since this header got generated");
+static_assert(std::is_trivially_destructible_v<MyStruct>);
+static_assert(std::is_trivially_move_constructible_v<
+              ::functions::generic_fn_tests::as_ref_trait_tests::MyStruct>);
+static_assert(std::is_trivially_move_assignable_v<
+              ::functions::generic_fn_tests::as_ref_trait_tests::MyStruct>);
 namespace __crubit_internal {
-extern "C" std::int32_t __crubit_thunk_static_usum(
-    rs_std::SliceRef<const std::int32_t>);
+extern "C" ::functions::generic_fn_tests::as_ref_trait_tests::MyStruct
+__crubit_thunk_new(std::int32_t);
 }
-inline std::int32_t static_sum(rs_std::SliceRef<const std::int32_t> arg) {
-  return __crubit_internal::__crubit_thunk_static_usum(arg);
+inline ::functions::generic_fn_tests::as_ref_trait_tests::MyStruct
+MyStruct::new_(std::int32_t x) {
+  return __crubit_internal::__crubit_thunk_new(x);
 }
-
+inline void MyStruct::__crubit_field_offset_assertions() {
+  static_assert(0 == offsetof(MyStruct, __field0));
+}
 namespace __crubit_internal {
-extern "C" std::int32_t __crubit_thunk_sum(
-    rs_std::SliceRef<const std::int32_t>);
+extern "C" void __crubit_thunk_diverse_ulifetimes(
+    rs_std::SliceRef<const std::int32_t>, rs_std::SliceRef<const std::int32_t>,
+    rs_std::SliceRef<const std::int32_t>, rs_std::SliceRef<std::int32_t>);
 }
-inline std::int32_t sum(rs_std::SliceRef<const std::int32_t> arg) {
-  return __crubit_internal::__crubit_thunk_sum(arg);
-}
-
-namespace __crubit_internal {
-extern "C" void __crubit_thunk_sum3(rs_std::SliceRef<const std::int32_t>,
-                                    rs_std::SliceRef<const std::int32_t>,
-                                    rs_std::SliceRef<const std::int32_t>,
-                                    rs_std::SliceRef<std::int32_t>);
-}
-inline void sum3(rs_std::SliceRef<const std::int32_t> arg1,
-                 rs_std::SliceRef<const std::int32_t> arg2,
-                 rs_std::SliceRef<const std::int32_t> arg3,
-                 rs_std::SliceRef<std::int32_t> result) {
+inline void diverse_lifetimes(rs_std::SliceRef<const std::int32_t> arg1,
+                              rs_std::SliceRef<const std::int32_t> arg2,
+                              rs_std::SliceRef<const std::int32_t> arg3,
+                              rs_std::SliceRef<std::int32_t> result) {
   crubit::internal::CheckNoMutableAliasing(
       crubit::internal::AsMutPtrDatas<rs_std::SliceRef<std::int32_t>>(result),
       crubit::internal::AsPtrDatas<rs_std::SliceRef<const std::int32_t>,
                                    rs_std::SliceRef<const std::int32_t>,
                                    rs_std::SliceRef<const std::int32_t>>(
           arg1, arg2, arg3));
-  return __crubit_internal::__crubit_thunk_sum3(arg1, arg2, arg3, result);
+  return __crubit_internal::__crubit_thunk_diverse_ulifetimes(arg1, arg2, arg3,
+                                                              result);
+}
+
+namespace __crubit_internal {
+extern "C" std::int32_t __crubit_thunk_slice_uref_usum(
+    rs_std::SliceRef<const std::int32_t>);
+}
+inline std::int32_t slice_ref_sum(rs_std::SliceRef<const std::int32_t> arg) {
+  return __crubit_internal::__crubit_thunk_slice_uref_usum(arg);
+}
+
+namespace __crubit_internal {
+extern "C" std::int32_t __crubit_thunk_static_ulifetime_urequirement(
+    rs_std::SliceRef<const std::int32_t>);
+}
+inline std::int32_t static_lifetime_requirement(
+    rs_std::SliceRef<const std::int32_t> arg) {
+  return __crubit_internal::__crubit_thunk_static_ulifetime_urequirement(arg);
+}
+
+namespace __crubit_internal {
+extern "C" std::int32_t __crubit_thunk_struct_uref(
+    ::functions::generic_fn_tests::as_ref_trait_tests::MyStruct const* $static
+        crubit_nonnull);
+}
+inline std::int32_t struct_ref(
+    ::functions::generic_fn_tests::as_ref_trait_tests::MyStruct const* $static
+        crubit_nonnull arg) {
+  return __crubit_internal::__crubit_thunk_struct_uref(arg);
 }
 
 }  // namespace functions::generic_fn_tests::as_ref_trait_tests
