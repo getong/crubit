@@ -3286,7 +3286,13 @@ llvm::Error collectEvidenceFromSummary(
     const PreviousInferences &PreviousInferences,
     const SolverFactory &MakeSolver) {
   std::unique_ptr<dataflow::Solver> Solver = MakeSolver();
-  DataflowAnalysisContext AnalysisContext(*Solver);
+  DataflowAnalysisContext AnalysisContext(
+      *Solver,
+      // Use a null logger as:
+      // 1. We don't run the DataflowAnalysis to be able to tell the logger
+      //    about the beginAnalysis() and endAnalysis() events.
+      // 2. At this point, we don't have a CFG to pass to beginAnalysis().
+      DataflowAnalysisContext::Options{.Log = &dataflow::Logger::null()});
   llvm::DenseMap<unsigned, dataflow::Atom> AtomMap;
   llvm::Expected<dataflow::SimpleLogicalContext> Ctx = loadLogicalContext(
       Summary.logical_context(), AnalysisContext.arena(), AtomMap);
