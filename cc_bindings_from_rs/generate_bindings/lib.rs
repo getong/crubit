@@ -39,7 +39,8 @@ use crate::generate_struct_and_union::{
 use arc_anyhow::{Context, Error, Result};
 use code_gen_utils::{format_cc_includes, CcConstQualifier, CcInclude, NamespaceQualifier};
 use database::code_snippet::{
-    ApiSnippets, CcPrerequisites, CcSnippet, ExternCDecl, RsSnippet, TemplateSpecialization,
+    ApiSnippets, CcPrerequisites, CcSnippet, ExternCDecl, RsSnippet,
+    RsStdEnumTemplateSpecialization, RsStdEnumTemplateSpecializationCore, TemplateSpecialization,
 };
 use database::{
     AdtCoreBindings, ExportedPath, FineGrainedFeature, FullyQualifiedName, NoMoveOrAssign,
@@ -232,6 +233,7 @@ pub fn new_database<'db>(
         from_trait_impls_by_argument,
         get_generic_args::get_generic_args,
         renamed_crate_original_name,
+        generate_template_specialization::parse_rs_std_template_specialization,
     )
 }
 
@@ -1893,23 +1895,15 @@ fn template_specialization_cmp<'tcx>(
 ) -> std::cmp::Ordering {
     match (left, right) {
         (
-            TemplateSpecialization::RsStdOption { self_ty: left_ty, .. },
-            TemplateSpecialization::RsStdOption { self_ty: right_ty, .. },
+            TemplateSpecialization::RsStdEnum(RsStdEnumTemplateSpecialization {
+                core: RsStdEnumTemplateSpecializationCore { self_ty_rs: left_ty, .. },
+                ..
+            }),
+            TemplateSpecialization::RsStdEnum(RsStdEnumTemplateSpecialization {
+                core: RsStdEnumTemplateSpecializationCore { self_ty_rs: right_ty, .. },
+                ..
+            }),
         ) => left_ty.sort_string(tcx).cmp(&right_ty.sort_string(tcx)),
-        (
-            TemplateSpecialization::RsStdResult { self_ty: left_ty, .. },
-            TemplateSpecialization::RsStdResult { self_ty: right_ty, .. },
-        ) => left_ty.sort_string(tcx).cmp(&right_ty.sort_string(tcx)),
-        // We need some ordering for consistency, but we don't care what it is.
-        // Pick something arbitrary.
-        (
-            TemplateSpecialization::RsStdOption { .. },
-            TemplateSpecialization::RsStdResult { .. },
-        ) => std::cmp::Ordering::Less,
-        (
-            TemplateSpecialization::RsStdResult { .. },
-            TemplateSpecialization::RsStdOption { .. },
-        ) => std::cmp::Ordering::Greater,
     }
 }
 

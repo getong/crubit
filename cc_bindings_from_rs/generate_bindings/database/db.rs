@@ -7,7 +7,9 @@ extern crate rustc_middle;
 extern crate rustc_span;
 
 use crate::adt_core_bindings::{AdtCoreBindings, CopyCtorStyle, MoveCtorStyle, NoMoveOrAssign};
-use crate::code_snippet::{ApiSnippets, CcSnippet, CrubitAbiTypeWithCcPrereqs};
+use crate::code_snippet::{
+    ApiSnippets, CcSnippet, CrubitAbiTypeWithCcPrereqs, RsStdEnumTemplateSpecialization,
+};
 use crate::fully_qualified_name::{FullyQualifiedName, PublicPaths, UnqualifiedName};
 use crate::include_guard::IncludeGuard;
 use crate::type_location::TypeLocation;
@@ -322,5 +324,16 @@ memoized::query_group! {
 
       // Returns the original name of a crate, if it has been renamed.
       fn renamed_crate_original_name(&self, crate_num: CrateNum) -> Option<Rc<str>>;
+
+      /// Parses `self_ty` into a supported template specialization, if one is available
+      /// (e.g. `Option<T>`, `Result<T, E>`). This just checks the type conforms to the right shape
+      /// and contains valid types. It does not check if the template specialization should be used
+      /// (vs using composable bridging).
+      ///
+      /// Implementation: cc_bindings_from_rs/generate_bindings/generate_template_specialization.rs?q=function:parse_rs_std_template_specialization
+      fn parse_rs_std_template_specialization(
+          &self,
+          self_ty: Ty<'tcx>,
+      ) -> Option<Result<RsStdEnumTemplateSpecialization<'tcx>>>;
   }
 }

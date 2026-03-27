@@ -11,7 +11,7 @@ extern crate rustc_span;
 extern crate rustc_type_ir;
 
 use crate::generate_function::check_fn_sig;
-use crate::generate_function_thunk::{is_thunk_required, replace_all_regions_with_static};
+use crate::generate_function_thunk::is_thunk_required;
 use crate::{
     check_feature_enabled_on_self_and_all_deps, check_slice_layout, get_layout,
     matches_qualified_name, CcType,
@@ -22,6 +22,7 @@ use crubit_abi_type::{CrubitAbiType, FullyQualifiedPath};
 use crubit_attr::BridgingAttrs;
 use database::code_snippet::{
     CcPrerequisites, CcSnippet, CrubitAbiTypeWithCcPrereqs, TemplateSpecialization,
+    TemplateSpecializationKind,
 };
 use database::BindingsGenerator;
 use database::{FineGrainedFeature, TypeLocation};
@@ -135,28 +136,6 @@ fn format_transparent_pointee_or_reference_for_cc<'tcx>(
 
     let referent = substs[0].expect_ty();
     format_pointer_or_reference_ty_for_cc(db, referent, mutability, pointer_sigil).ok()
-}
-
-/// Checks that the tag of a type, if present, is C++ compatible. This will fail when the tag is a
-/// u128 or other unsupported type.
-fn validate_tag_ty_for_cc<'tcx>(
-    db: &BindingsGenerator<'tcx>,
-    ty: Ty<'tcx>,
-) -> Result<Option<CcSnippet<'tcx>>> {
-    use rustc_abi::Variants;
-    use rustc_middle::ty::layout::PrimitiveExt;
-
-    let tcx = db.tcx();
-    let layout = get_layout(tcx, ty)?;
-    match layout.variants() {
-        Variants::Empty => Ok(None),
-        Variants::Single { .. } => Ok(None),
-        Variants::Multiple { tag, .. } => {
-            let tag_type = tag.primitive().to_int_ty(tcx);
-            let tag_type_cc = db.format_ty_for_cc(tag_type, TypeLocation::Other)?;
-            Ok(Some(tag_type_cc))
-        }
-    }
 }
 
 /// Implementation of `BindingsGenerator::format_ty_for_cc`.
@@ -311,61 +290,29 @@ pub fn format_ty_for_cc<'tcx>(
                 );
             }
 
-            let bridged_builtin = BridgedBuiltin::new(db, adt);
-            if bridged_builtin.is_some_and(|bridged_builtin| {
-                (matches!(bridged_builtin, BridgedBuiltin::Option) && !location.is_bridgeable())
-                    || matches!(bridged_builtin, BridgedBuiltin::Result)
+            let specialization = db.parse_rs_std_template_specialization(ty);
+            if specialization.as_ref().is_some_and(|specialization| {
+                specialization.is_err()
+                    || specialization.as_ref().is_ok_and(|rs_std_enum| {
+                        (matches!(rs_std_enum.kind, TemplateSpecializationKind::Option { .. })
+                            && !location.is_bridgeable())
+                            || matches!(rs_std_enum.kind, TemplateSpecializationKind::Result { .. })
+                    })
             }) {
-                match bridged_builtin.unwrap() {
-                    BridgedBuiltin::Option => {
-                        let arg = replace_all_regions_with_static(tcx, substs.type_at(0));
-                        let ty_tokens = db
-                            .format_ty_for_cc(arg, TypeLocation::Other)?
-                            .resolve_feature_requirements(crate::crate_features(
-                                db,
-                                db.source_crate_num(),
-                            ))?
-                            .into_tokens(&mut prereqs);
-                        // We just want to make sure the tag will work.
-                        let _ = validate_tag_ty_for_cc(db, ty)?;
-                        prereqs.template_specializations.insert(
-                            TemplateSpecialization::RsStdOption { arg_ty: arg, self_ty: ty },
-                        );
+                let rs_std_enum = specialization.unwrap()?;
+                let tokens = rs_std_enum.core.self_ty_cc.clone().into_tokens(&mut prereqs);
+                match rs_std_enum.kind {
+                    TemplateSpecializationKind::Option { .. } => {
                         prereqs.includes.insert(db.support_header("rs_std/option.h"));
-                        return Ok(CcSnippet {
-                            tokens: quote! { rs_std::Option<#ty_tokens> },
-                            prereqs,
-                        });
                     }
-                    BridgedBuiltin::Result => {
-                        let ok_ty = replace_all_regions_with_static(tcx, substs.type_at(0));
-                        let ok_ty_tokens = db
-                            .format_ty_for_cc(ok_ty, TypeLocation::Other)?
-                            .resolve_feature_requirements(crate::crate_features(
-                                db,
-                                db.source_crate_num(),
-                            ))?
-                            .into_tokens(&mut prereqs);
-                        let err_ty = replace_all_regions_with_static(tcx, substs.type_at(1));
-                        let err_ty_tokens = db
-                            .format_ty_for_cc(err_ty, TypeLocation::Other)?
-                            .resolve_feature_requirements(crate::crate_features(
-                                db,
-                                db.source_crate_num(),
-                            ))?
-                            .into_tokens(&mut prereqs);
-                        // We just want to make sure the tag will work.
-                        let _ = validate_tag_ty_for_cc(db, ty)?;
-                        prereqs.template_specializations.insert(
-                            TemplateSpecialization::RsStdResult { ok_ty, err_ty, self_ty: ty },
-                        );
+                    TemplateSpecializationKind::Result { .. } => {
                         prereqs.includes.insert(db.support_header("rs_std/result.h"));
-                        return Ok(CcSnippet {
-                            tokens: quote! { rs_std::Result<#ok_ty_tokens, #err_ty_tokens> },
-                            prereqs,
-                        });
                     }
                 }
+                prereqs
+                    .template_specializations
+                    .insert(TemplateSpecialization::RsStdEnum(rs_std_enum));
+                return Ok(CcSnippet { tokens, prereqs });
             } else if let Some(bridged_type) = is_bridged_type(db, ty)? {
                 ensure!(
                     location.is_bridgeable(),

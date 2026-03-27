@@ -2,10 +2,14 @@
 // Exceptions. See /LICENSE for license information.
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 
+use crate::generate_function_thunk::replace_all_regions_with_static;
 use crate::generate_struct_and_union::{generate_relocating_ctor, scalar_value_to_string};
 use arc_anyhow::Result;
 use code_gen_utils::{escape_non_identifier_chars, CcInclude};
-use database::code_snippet::{ApiSnippets, CcPrerequisites, CcSnippet, TemplateSpecialization};
+use database::code_snippet::{
+    ApiSnippets, CcPrerequisites, CcSnippet, FormattedTy, RsStdEnumTemplateSpecialization,
+    RsStdEnumTemplateSpecializationCore, TemplateSpecialization,
+};
 use database::{BindingsGenerator, TypeLocation};
 use error_report::anyhow;
 use proc_macro2::Literal;
@@ -31,6 +35,129 @@ fn has_relocating_ctor<'tcx>(db: &BindingsGenerator<'tcx>, ty: Ty<'tcx>) -> bool
                 || db.adt_needs_bindings(adt.did()).is_ok()
         })
         .unwrap_or(false)
+}
+
+pub(crate) fn parse_rs_std_template_specialization<'tcx>(
+    db: &BindingsGenerator<'tcx>,
+    self_ty: Ty<'tcx>,
+) -> Option<Result<RsStdEnumTemplateSpecialization<'tcx>>> {
+    use crate::BridgedBuiltin;
+    use database::code_snippet::TemplateSpecializationKind;
+    let ty::TyKind::Adt(adt, substs) = self_ty.kind() else {
+        return None;
+    };
+    BridgedBuiltin::new(db, *adt).map(|bridged_builtin| {
+        let tcx = db.tcx();
+        match bridged_builtin {
+            BridgedBuiltin::Option => {
+                let arg_ty = FormattedTy::try_from_ty(
+                    replace_all_regions_with_static(tcx, substs.type_at(0)),
+                    TypeLocation::Other,
+                    db
+                )?;
+                let layout = get_layout(tcx, self_ty)?;
+
+                let tag = match layout.variants() {
+                    rustc_abi::Variants::Empty => {
+                        unreachable!("Option is never uninhabited because of the None variant.")
+                    }
+                    rustc_abi::Variants::Single { .. } => {
+                        unreachable!(
+                            "This case only occurs when our Some variant contains an uninhabited \
+                            type. This is unsupported today and we call format_ty_for_cc on our \
+                            argument type before queueing a specialization, so this case should not \
+                            occur in practice."
+                        )
+                    }
+                    rustc_abi::Variants::Multiple { tag, .. } => {
+                        tag
+                    }
+                };
+                let tag_type_rs = tag.primitive().to_int_ty(tcx);
+                let tag_type_cc = db.format_ty_for_cc(tag_type_rs, TypeLocation::Other)?;
+                let self_ty_cc = {
+                    let mut prereqs = CcPrerequisites::default();
+                    let arg_ty_cc = arg_ty.for_cc.clone().into_tokens(&mut prereqs);
+                    CcSnippet {
+                        tokens: quote! { rs_std::Option<#arg_ty_cc> },
+                        prereqs,
+                    }
+                };
+                Ok(RsStdEnumTemplateSpecialization {
+                    core: RsStdEnumTemplateSpecializationCore {
+                        layout,
+                        self_ty_rs: self_ty,
+                        self_ty_cc,
+                        tag_type_rs,
+                        tag_type_cc,
+                    },
+                    kind: TemplateSpecializationKind::Option {
+                        arg_ty,
+                    },
+                })
+            }
+            BridgedBuiltin::Result => {
+                let ok_ty = FormattedTy::try_from_ty(
+                    replace_all_regions_with_static(tcx, substs.type_at(0)),
+                    TypeLocation::Other,
+                    db
+                )?;
+                let err_ty = FormattedTy::try_from_ty(
+                    replace_all_regions_with_static(tcx, substs.type_at(1)),
+                    TypeLocation::Other,
+                    db
+                )?;
+
+                let layout = get_layout(tcx, self_ty)?;
+                let tag = match layout.variants() {
+                    rustc_abi::Variants::Empty => {
+                        unreachable!(
+                            "Result is only uninhabited when both Ok and Err are uninhabited. We do \
+                        not support uninhabited types today, and we format our Ok and Err type before queueing \
+                        this specialization, so this case should not occur in practice."
+                        )
+                    }
+                    rustc_abi::Variants::Single { .. } => {
+                        unreachable!(
+                            "Result only has a single variant when either Ok or Err is uninhabited. We do \
+                        not support uninhabited types today, and we format our Ok and Err type before queueing \
+                        this specialization, so this case should not occur in practice."
+                        )
+                    }
+                    rustc_abi::Variants::Multiple { tag, .. } => {
+                        // We only need to check the tag now. We'll use the rest of the fields
+                        // in `generate_template_specialization` below.
+                        tag
+                    }
+                };
+
+                let tag_type_rs = tag.primitive().to_int_ty(tcx);
+                let tag_type_cc = db.format_ty_for_cc(tag_type_rs, TypeLocation::Other)?;
+                let self_ty_cc = {
+                    let mut prereqs = CcPrerequisites::default();
+                    let ok_ty_cc = ok_ty.for_cc.clone().into_tokens(&mut prereqs);
+                    let err_ty_cc = err_ty.for_cc.clone().into_tokens(&mut prereqs);
+                    CcSnippet {
+                        tokens: quote! { rs_std::Result<#ok_ty_cc, #err_ty_cc> },
+                        prereqs,
+                    }
+                };
+                Ok(RsStdEnumTemplateSpecialization {
+                    core: RsStdEnumTemplateSpecializationCore {
+                        layout,
+                        self_ty_rs: self_ty,
+                        self_ty_cc,
+                        tag_type_rs,
+                        tag_type_cc,
+                    },
+                    kind: TemplateSpecializationKind::Result {
+                        ok_ty,
+                        err_ty,
+                    },
+                })
+            }
+        }
+    })
 }
 
 struct OptionApiGenerator<'a, 'tcx> {
@@ -291,213 +418,6 @@ fn literal_of_tag_ty<'tcx>(tcx: TyCtxt<'tcx>, val: u128, ty: Ty<'tcx>) -> TokenS
                 .map_err(|_| anyhow!("scalar_value_to_string produced invalid tokens"))
         })
         .expect("tag to be valid scalar tokens")
-}
-
-/// Generate a template specialization for an instance of `Option<T>`.
-///
-/// `arg_ty` is used to determine the corresponding C++ type of the `T` in `Option<T>`.
-/// `self_ty` is the type of the `Option<T>` and is used to determine the layout of the type,
-/// especially the location of the tag accounting for any niches.
-fn specialize_option<'tcx>(
-    db: &BindingsGenerator<'tcx>,
-    arg_ty: Ty<'tcx>,
-    self_ty: Ty<'tcx>,
-) -> Result<ApiSnippets<'tcx>> {
-    let tcx = db.tcx();
-    let mut prereqs = CcPrerequisites::default();
-    let ty_tokens = db
-        .format_ty_for_cc(arg_ty, TypeLocation::Other)?
-        .resolve_feature_requirements(crate::crate_features(db, db.source_crate_num()))?
-        .into_tokens(&mut prereqs);
-    let layout = get_layout(tcx, self_ty).expect("We've already checked this layout is valid");
-
-    let (tag, tag_encoding, tag_field, variants) = match layout.variants() {
-        rustc_abi::Variants::Empty => {
-            unreachable!("Option is never uninhabited because of the None variant.")
-        }
-        rustc_abi::Variants::Single { .. } => {
-            unreachable!(
-                "This case only occurs when our Some variant contains a zero sized type \
-             (aka an uninhabited type). This is unssupported today and we call format_ty_for_cc on \
-             our argument type before queueing a specialization, so this case should not occur in \
-             practice."
-            )
-        }
-        rustc_abi::Variants::Multiple { tag, tag_encoding, tag_field, variants } => {
-            (tag, tag_encoding, tag_field, variants)
-        }
-    };
-    let tag_type = tag.primitive().to_int_ty(tcx);
-    let tag_type_cc: TokenStream =
-        db.format_ty_for_cc(tag_type, TypeLocation::Other)?.into_tokens(&mut prereqs);
-    let arg_ty_for_rs = db.format_ty_for_rs(arg_ty)?;
-
-    let ty::TyKind::Adt(adt, _) = self_ty.kind() else {
-        unreachable!("Option<T> must be an ADT");
-    };
-    let needs_drop = self_ty.needs_drop(tcx, post_analysis_typing_env(tcx, adt.did()));
-
-    let OptionVariantIndices { some_idx, none_idx } = get_option_variant_indices(tcx, *adt);
-
-    prereqs.includes.insert(CcInclude::optional());
-    let tag_offset = Literal::u64_unsuffixed(layout.fields().offset(tag_field.as_usize()).bytes());
-
-    let endian = tcx.sess.target.options.endian;
-    let endian_index = match endian {
-        rustc_abi::Endian::Little => quote! { i },
-        rustc_abi::Endian::Big => quote! { sizeof(#tag_type_cc) - 1 - i },
-    };
-    let tag_method = ApiSnippets {
-        main_api: CcSnippet::new(quote! {
-            constexpr #tag_type_cc tag() const& noexcept; __NEWLINE__
-            constexpr void set_tag(#tag_type_cc tag) noexcept; __NEWLINE__
-        }),
-        cc_details: CcSnippet::new(quote! {
-            inline constexpr #tag_type_cc rs_std::Option<#ty_tokens>::tag() const& noexcept {
-                std::array<unsigned char, sizeof(#tag_type_cc)> __bytes = {};
-                for (std::size_t i = 0; i < sizeof(#tag_type_cc); ++i) {
-                    __bytes[#endian_index] = storage_[#tag_offset + i];
-                }
-                return std::bit_cast<#tag_type_cc>(__bytes);
-            }
-            __NEWLINE__
-            inline constexpr void rs_std::Option<#ty_tokens>::set_tag(#tag_type_cc tag) noexcept {
-                auto __bytes = std::bit_cast<std::array<unsigned char, sizeof(#tag_type_cc)>>(tag);
-                for (std::size_t i = 0; i < sizeof(#tag_type_cc); ++i) {
-                    storage_[#tag_offset + i] = __bytes[#endian_index];
-                }
-            }
-            __NEWLINE__
-        }),
-        ..Default::default()
-    };
-
-    let expect_msg =
-        "Please file a bug at crubit.rs-bug. We do not support zero sized types. Before generating \
-         a specialization, we check that the type can be formatted as a C++ type. That should \
-         exclude this case from occurring.";
-    let discr_for_none = self_ty.discriminant_for_variant(tcx, none_idx).expect(expect_msg);
-    let none_discr_val = literal_of_tag_ty(tcx, discr_for_none.val, tag_type);
-    let option_api = match tag_encoding {
-        rustc_abi::TagEncoding::Direct => {
-            // Option::None is variant 0. Option::Some is variant 1.
-            let some_variant = &variants[some_idx];
-            let payload_offset = Literal::u64_unsuffixed(some_variant.fields.offset(0).bytes());
-            let discr_for_some = self_ty.discriminant_for_variant(tcx, some_idx).expect(expect_msg);
-            let some_discr_val = literal_of_tag_ty(tcx, discr_for_some.val, tag_type);
-
-            OptionApiGenerator {
-                db,
-                arg_ty_rs: arg_ty,
-                arg_ty: ty_tokens.clone(),
-                needs_drop,
-                tag_method,
-                none_val: quote! { #none_discr_val },
-                write_some_to_tag: quote! { set_tag(#some_discr_val); },
-                some_ptr_val: quote! {
-                    reinterpret_cast<#ty_tokens*>(storage_ + #payload_offset)
-                },
-                tag_type_cc: tag_type_cc.clone(),
-            }
-        }
-        rustc_abi::TagEncoding::Niche { niche_start, ref niche_variants, .. } => {
-            let none_relative_idx =
-                none_idx.as_u32().strict_sub(niche_variants.start().as_u32()) as u128;
-            let none_relative_val =
-                literal_of_tag_ty(tcx, *niche_start + none_relative_idx, tag_type);
-            OptionApiGenerator {
-                db,
-                arg_ty_rs: arg_ty,
-                arg_ty: ty_tokens.clone(),
-                needs_drop,
-                tag_method,
-                none_val: quote! { #none_relative_val },
-                some_ptr_val: quote! {
-                    reinterpret_cast<#ty_tokens*>(storage_)
-                },
-                // With a niche, the Some variant is implicitly encoded. We don't need to write out
-                // a discriminant value. It is accomplished by writing a value to the Some payload.
-                write_some_to_tag: quote! {},
-                tag_type_cc: tag_type_cc.clone(),
-            }
-        }
-    };
-    let ty::TyKind::Adt(adt, _) = self_ty.kind() else {
-        unreachable!("Option<T> must be an ADT");
-    };
-    let rs_fully_qualified_name = quote! { std::option::Option<#arg_ty_for_rs> };
-    let cc_fully_qualified_name = quote! { rs_std::Option<#ty_tokens> };
-    let core = Rc::new(database::AdtCoreBindings {
-        def_id: adt.did(),
-        keyword: quote! { struct },
-        cc_short_name: format_ident!("Option"),
-        rs_fully_qualified_name: rs_fully_qualified_name.clone(),
-        cc_fully_qualified_name: cc_fully_qualified_name.clone(),
-        self_ty,
-        alignment_in_bytes: layout.align().abi.bytes(),
-        size_in_bytes: layout.size().bytes(),
-    });
-
-    let copy_ctor_and_assignment_snippets =
-        db.generate_copy_ctor_and_assignment_operator(core.clone()).unwrap_or_else(|err| err);
-
-    let move_ctor_and_assignment_snippets = db
-        .generate_move_ctor_and_assignment_operator(core.clone())
-        .unwrap_or_else(|err| err.explicitly_deleted);
-
-    let relocating_ctor_snippets = generate_relocating_ctor(db, &core.cc_short_name);
-
-    let ApiSnippets { main_api, cc_details, rs_details } = [
-        copy_ctor_and_assignment_snippets,
-        move_ctor_and_assignment_snippets,
-        relocating_ctor_snippets,
-        option_api.api_snippets(),
-    ]
-    .into_iter()
-    .collect();
-    let main_api_tokens = main_api.into_tokens(&mut prereqs);
-
-    let qualified_name = cc_fully_qualified_name.to_string();
-    let name = escape_non_identifier_chars(&qualified_name);
-    let guard_name = format_ident!("_CRUBIT_BINDINGS_FOR_{}", name);
-    let size_literal = Literal::u64_unsuffixed(layout.size().bytes());
-    let align_literal = Literal::u64_unsuffixed(layout.align().abi.bytes());
-    let internal_rust_type_string = rs_fully_qualified_name.to_string();
-    // TODO(cramertj): Consider standardizing the `storage_` field with other representations in
-    // `generate_adt`.
-    let main_api_tokens = quote! {
-        __HASH_TOKEN__ ifndef #guard_name __NEWLINE__
-        __HASH_TOKEN__ define #guard_name __NEWLINE__
-        template<> __NEWLINE__
-        struct alignas(#align_literal)
-        CRUBIT_INTERNAL_RUST_TYPE(#internal_rust_type_string)
-        rs_std::Option<#ty_tokens> { __NEWLINE__
-        public:
-            #main_api_tokens __NEWLINE__
-
-         private:
-          unsigned char storage_[#size_literal];
-            __NEWLINE__
-        }; __NEWLINE__
-
-        __HASH_TOKEN__ endif __NEWLINE__
-        __NEWLINE__
-    };
-
-    let guard_name = format_ident!("_CRUBIT_BINDINGS_FOR_IMPL_{}", name);
-    let cc_details_tokens = cc_details.into_tokens(&mut prereqs);
-    let cc_details_tokens = quote! {
-        __HASH_TOKEN__ ifndef #guard_name __NEWLINE__
-        __HASH_TOKEN__ define #guard_name __NEWLINE__
-        #cc_details_tokens
-        __HASH_TOKEN__ endif __NEWLINE__
-        __NEWLINE__
-    };
-    Ok(ApiSnippets {
-        main_api: CcSnippet { tokens: main_api_tokens, prereqs },
-        cc_details: CcSnippet::new(cc_details_tokens),
-        rs_details,
-    })
 }
 
 struct ResultVariantIndices {
@@ -777,50 +697,31 @@ impl<'tcx> ResultApiGenerator<'_, 'tcx> {
 }
 
 fn specialize_result<'tcx>(
+    core: RsStdEnumTemplateSpecializationCore<'tcx>,
     db: &BindingsGenerator<'tcx>,
-    ok_ty: Ty<'tcx>,
-    err_ty: Ty<'tcx>,
-    self_ty: Ty<'tcx>,
-) -> Result<ApiSnippets<'tcx>> {
+    ok_ty: FormattedTy<'tcx>,
+    err_ty: FormattedTy<'tcx>,
+) -> ApiSnippets<'tcx> {
     let tcx = db.tcx();
     let mut prereqs = CcPrerequisites::default();
-    let ok_ty_tokens = db
-        .format_ty_for_cc(ok_ty, TypeLocation::Other)?
-        .resolve_feature_requirements(crate::crate_features(db, db.source_crate_num()))?
-        .into_tokens(&mut prereqs);
-    let err_ty_tokens = db
-        .format_ty_for_cc(err_ty, TypeLocation::Other)?
-        .resolve_feature_requirements(crate::crate_features(db, db.source_crate_num()))?
-        .into_tokens(&mut prereqs);
-
-    let layout = get_layout(tcx, self_ty).expect("We've already checked this layout is valid");
-    let (tag, tag_encoding, tag_field, variants) = match layout.variants() {
-        rustc_abi::Variants::Empty => {
-            unreachable!(
-                "Result is only uninhabited when both Ok and Err are uninhabited. We do \
-            not support zero sized types today, and we format our Ok and Err type before queueing \
-            this specialization, so this case should not occur in practice."
-            )
+    let ok_ty_tokens = ok_ty.for_cc.into_tokens(&mut prereqs);
+    let err_ty_tokens = err_ty.for_cc.into_tokens(&mut prereqs);
+    let layout = core.layout;
+    let (tag_encoding, tag_field, variants) = match layout.variants() {
+        rustc_abi::Variants::Empty | rustc_abi::Variants::Single { .. } => {
+            unreachable!("This should have been checked in parse_rs_std_template_specialization")
         }
-        rustc_abi::Variants::Single { .. } => {
-            unreachable!(
-                "Result only has a single variant when either Ok or Err is uninhabited. We do \
-            not support zero sized types today, and we format our Ok and Err type before queueing \
-            this specialization, so this case should not occur in practice."
-            )
-        }
-        rustc_abi::Variants::Multiple { tag, tag_encoding, tag_field, variants } => {
-            (tag, tag_encoding, tag_field, variants)
+        rustc_abi::Variants::Multiple { tag_encoding, tag_field, variants, .. } => {
+            (tag_encoding, tag_field, variants)
         }
     };
 
-    let tag_type = tag.primitive().to_int_ty(tcx);
-    let tag_type_cc: TokenStream =
-        db.format_ty_for_cc(tag_type, TypeLocation::Other)?.into_tokens(&mut prereqs);
-    let arg_ty_for_rs = db.format_ty_for_rs(ok_ty)?;
-    let err_ty_for_rs = db.format_ty_for_rs(err_ty)?;
+    let tag_type = core.tag_type_rs;
+    let tag_type_cc: TokenStream = core.tag_type_cc.clone().into_tokens(&mut prereqs);
+    let ok_ty_for_rs = ok_ty.for_rs;
+    let err_ty_for_rs = err_ty.for_rs;
 
-    let ty::TyKind::Adt(adt, _) = self_ty.kind() else {
+    let ty::TyKind::Adt(adt, _) = core.self_ty_rs.kind() else {
         unreachable!("Result<T, E> must be an ADT");
     };
     let ResultVariantIndices { ok_idx, err_idx } = get_result_variant_indices(tcx, *adt);
@@ -859,18 +760,17 @@ fn specialize_result<'tcx>(
         ..Default::default()
     };
 
-    let needs_drop = self_ty.needs_drop(tcx, post_analysis_typing_env(tcx, adt.did()));
-
-    let discr_for_ok = self_ty.discriminant_for_variant(tcx, ok_idx).expect(
+    let needs_drop = core.self_ty_rs.needs_drop(tcx, post_analysis_typing_env(tcx, adt.did()));
+    let discr_for_ok = core.self_ty_rs.discriminant_for_variant(tcx, ok_idx).expect(
         "We do not support zero sized types. Before generating a specialization, we\
-         check that the type can be formatted as a C++ type. That should exclude this case \
-         from occurring",
+            check that the type can be formatted as a C++ type. That should exclude this case \
+            from occurring",
     );
     let ok_discr_val = literal_of_tag_ty(tcx, discr_for_ok.val, tag_type);
-    let discr_for_err = self_ty.discriminant_for_variant(tcx, err_idx).expect(
+    let discr_for_err = core.self_ty_rs.discriminant_for_variant(tcx, err_idx).expect(
         "We do not support zero sized types. Before generating a specialization, we\
-         check that the type can be formatted as a C++ type. That should exclude this case \
-         from occurring",
+            check that the type can be formatted as a C++ type. That should exclude this case \
+            from occurring",
     );
     let err_discr_val = literal_of_tag_ty(tcx, discr_for_err.val, tag_type);
 
@@ -884,9 +784,9 @@ fn specialize_result<'tcx>(
 
             ResultApiGenerator {
                 db,
-                ok_ty_rs: ok_ty,
+                ok_ty_rs: ok_ty.ty,
                 ok_ty_cpp: ok_ty_tokens.clone(),
-                err_ty_rs: err_ty,
+                err_ty_rs: err_ty.ty,
                 err_ty_cpp: err_ty_tokens.clone(),
                 needs_drop,
                 tag_method,
@@ -941,9 +841,9 @@ fn specialize_result<'tcx>(
             };
             ResultApiGenerator {
                 db,
-                ok_ty_rs: ok_ty,
+                ok_ty_rs: ok_ty.ty,
                 ok_ty_cpp: ok_ty_tokens.clone(),
-                err_ty_rs: err_ty,
+                err_ty_rs: err_ty.ty,
                 err_ty_cpp: err_ty_tokens.clone(),
                 needs_drop,
                 tag_method,
@@ -956,7 +856,7 @@ fn specialize_result<'tcx>(
         }
     };
 
-    let rs_fully_qualified_name = quote! { std::result::Result<#arg_ty_for_rs, #err_ty_for_rs> };
+    let rs_fully_qualified_name = quote! { std::result::Result<#ok_ty_for_rs, #err_ty_for_rs> };
     let cc_fully_qualified_name = quote! { rs_std::Result<#ok_ty_tokens, #err_ty_tokens> };
     let core = Rc::new(database::AdtCoreBindings {
         def_id: adt.did(),
@@ -964,7 +864,7 @@ fn specialize_result<'tcx>(
         cc_short_name: format_ident!("Result"),
         rs_fully_qualified_name: rs_fully_qualified_name.clone(),
         cc_fully_qualified_name: cc_fully_qualified_name.clone(),
-        self_ty,
+        self_ty: core.self_ty_rs,
         alignment_in_bytes: layout.align().abi.bytes(),
         size_in_bytes: layout.size().bytes(),
     });
@@ -1021,11 +921,225 @@ fn specialize_result<'tcx>(
         __NEWLINE__
     };
 
-    Ok(ApiSnippets {
+    ApiSnippets {
         main_api: CcSnippet { tokens: main_api_tokens, prereqs },
         cc_details: CcSnippet::new(cc_details_tokens),
         rs_details,
-    })
+    }
+}
+
+fn specialize_option<'tcx>(
+    core: RsStdEnumTemplateSpecializationCore<'tcx>,
+    db: &BindingsGenerator<'tcx>,
+    arg_ty: FormattedTy<'tcx>,
+) -> ApiSnippets<'tcx> {
+    let tcx = db.tcx();
+    let mut prereqs = CcPrerequisites::default();
+    let ty_tokens = arg_ty.for_cc.into_tokens(&mut prereqs);
+    let layout = core.layout;
+
+    let (tag_encoding, tag_field, variants) = match layout.variants() {
+        rustc_abi::Variants::Empty | rustc_abi::Variants::Single { .. } => {
+            unreachable!("This should have been checked in parse_rs_std_template_specialization")
+        }
+        rustc_abi::Variants::Multiple { tag_encoding, tag_field, variants, .. } => {
+            (tag_encoding, tag_field, variants)
+        }
+    };
+    let tag_type = core.tag_type_rs;
+    let tag_type_cc: TokenStream = core.tag_type_cc.into_tokens(&mut prereqs);
+    let arg_ty_for_rs = arg_ty.for_rs;
+
+    let ty::TyKind::Adt(adt, _) = core.self_ty_rs.kind() else {
+        unreachable!("Option<T> must be an ADT");
+    };
+    let needs_drop = core.self_ty_rs.needs_drop(tcx, post_analysis_typing_env(tcx, adt.did()));
+
+    let OptionVariantIndices { some_idx, none_idx } = get_option_variant_indices(tcx, *adt);
+
+    prereqs.includes.insert(CcInclude::optional());
+    let tag_offset = Literal::u64_unsuffixed(layout.fields().offset(tag_field.as_usize()).bytes());
+
+    let endian = tcx.sess.target.options.endian;
+    let endian_index = match endian {
+        rustc_abi::Endian::Little => quote! { i },
+        rustc_abi::Endian::Big => quote! { sizeof(#tag_type_cc) - 1 - i },
+    };
+    let tag_method = ApiSnippets {
+        main_api: CcSnippet::new(quote! {
+            constexpr #tag_type_cc tag() const& noexcept; __NEWLINE__
+            constexpr void set_tag(#tag_type_cc tag) noexcept; __NEWLINE__
+        }),
+        cc_details: CcSnippet::new(quote! {
+            inline constexpr #tag_type_cc rs_std::Option<#ty_tokens>::tag() const& noexcept {
+                std::array<unsigned char, sizeof(#tag_type_cc)> __bytes = {};
+                for (std::size_t i = 0; i < sizeof(#tag_type_cc); ++i) {
+                    __bytes[#endian_index] = storage_[#tag_offset + i];
+                }
+                return std::bit_cast<#tag_type_cc>(__bytes);
+            }
+            __NEWLINE__
+            inline constexpr void rs_std::Option<#ty_tokens>::set_tag(#tag_type_cc tag) noexcept {
+                auto __bytes = std::bit_cast<std::array<unsigned char, sizeof(#tag_type_cc)>>(tag);
+                for (std::size_t i = 0; i < sizeof(#tag_type_cc); ++i) {
+                    storage_[#tag_offset + i] = __bytes[#endian_index];
+                }
+            }
+            __NEWLINE__
+        }),
+        ..Default::default()
+    };
+
+    let expect_msg =
+            "Please file a bug at crubit.rs-bug. We do not support zero sized types. Before generating \
+            a specialization, we check that the type can be formatted as a C++ type. That should \
+            exclude this case from occurring.";
+    let discr_for_none = core.self_ty_rs.discriminant_for_variant(tcx, none_idx).expect(expect_msg);
+    let none_discr_val = literal_of_tag_ty(tcx, discr_for_none.val, tag_type);
+    let option_api = match tag_encoding {
+        rustc_abi::TagEncoding::Direct => {
+            // Option::None is variant 0. Option::Some is variant 1.
+            let some_variant = &variants[some_idx];
+            let payload_offset = Literal::u64_unsuffixed(some_variant.fields.offset(0).bytes());
+            let discr_for_some =
+                core.self_ty_rs.discriminant_for_variant(tcx, some_idx).expect(expect_msg);
+            let some_discr_val = literal_of_tag_ty(tcx, discr_for_some.val, tag_type);
+
+            OptionApiGenerator {
+                db,
+                arg_ty_rs: arg_ty.ty,
+                arg_ty: ty_tokens.clone(),
+                needs_drop,
+                tag_method,
+                none_val: quote! { #none_discr_val },
+                write_some_to_tag: quote! { set_tag(#some_discr_val); },
+                some_ptr_val: quote! {
+                    reinterpret_cast<#ty_tokens*>(storage_ + #payload_offset)
+                },
+                tag_type_cc: tag_type_cc.clone(),
+            }
+        }
+        rustc_abi::TagEncoding::Niche { niche_start, ref niche_variants, .. } => {
+            let none_relative_idx =
+                none_idx.as_u32().strict_sub(niche_variants.start().as_u32()) as u128;
+            let none_relative_val =
+                literal_of_tag_ty(tcx, *niche_start + none_relative_idx, tag_type);
+            OptionApiGenerator {
+                db,
+                arg_ty_rs: arg_ty.ty,
+                arg_ty: ty_tokens.clone(),
+                needs_drop,
+                tag_method,
+                none_val: quote! { #none_relative_val },
+                some_ptr_val: quote! {
+                    reinterpret_cast<#ty_tokens*>(storage_)
+                },
+                // With a niche, the Some variant is implicitly encoded. We don't need to write out
+                // a discriminant value. It is accomplished by writing a value to the Some payload.
+                write_some_to_tag: quote! {},
+                tag_type_cc: tag_type_cc.clone(),
+            }
+        }
+    };
+    let rs_fully_qualified_name = quote! { std::option::Option<#arg_ty_for_rs> };
+    let cc_fully_qualified_name = quote! { rs_std::Option<#ty_tokens> };
+    let core = Rc::new(database::AdtCoreBindings {
+        def_id: adt.did(),
+        keyword: quote! { struct },
+        cc_short_name: format_ident!("Option"),
+        rs_fully_qualified_name: rs_fully_qualified_name.clone(),
+        cc_fully_qualified_name: cc_fully_qualified_name.clone(),
+        self_ty: core.self_ty_rs,
+        alignment_in_bytes: layout.align().abi.bytes(),
+        size_in_bytes: layout.size().bytes(),
+    });
+
+    let copy_ctor_and_assignment_snippets =
+        db.generate_copy_ctor_and_assignment_operator(core.clone()).unwrap_or_else(|err| err);
+
+    let move_ctor_and_assignment_snippets = db
+        .generate_move_ctor_and_assignment_operator(core.clone())
+        .unwrap_or_else(|err| err.explicitly_deleted);
+
+    let relocating_ctor_snippets = generate_relocating_ctor(db, &core.cc_short_name);
+
+    let ApiSnippets { main_api, cc_details, rs_details } = [
+        copy_ctor_and_assignment_snippets,
+        move_ctor_and_assignment_snippets,
+        relocating_ctor_snippets,
+        option_api.api_snippets(),
+    ]
+    .into_iter()
+    .collect();
+    let main_api_tokens = main_api.into_tokens(&mut prereqs);
+
+    let qualified_name = cc_fully_qualified_name.to_string();
+    let name = escape_non_identifier_chars(&qualified_name);
+    let guard_name = format_ident!("_CRUBIT_BINDINGS_FOR_{}", name);
+    let size_literal = Literal::u64_unsuffixed(layout.size().bytes());
+    let align_literal = Literal::u64_unsuffixed(layout.align().abi.bytes());
+    let internal_rust_type_string = rs_fully_qualified_name.to_string();
+    // TODO(cramertj): Consider standardizing the `storage_` field with other representations in
+    // `generate_adt`.
+    let main_api_tokens = quote! {
+        __HASH_TOKEN__ ifndef #guard_name __NEWLINE__
+        __HASH_TOKEN__ define #guard_name __NEWLINE__
+        template<> __NEWLINE__
+        struct alignas(#align_literal)
+        CRUBIT_INTERNAL_RUST_TYPE(#internal_rust_type_string)
+        rs_std::Option<#ty_tokens> { __NEWLINE__
+        public:
+            #main_api_tokens __NEWLINE__
+
+        private:
+            unsigned char storage_[#size_literal];
+            __NEWLINE__
+        }; __NEWLINE__
+
+        __HASH_TOKEN__ endif __NEWLINE__
+        __NEWLINE__
+    };
+
+    let guard_name = format_ident!("_CRUBIT_BINDINGS_FOR_IMPL_{}", name);
+    let cc_details_tokens = cc_details.into_tokens(&mut prereqs);
+    let cc_details_tokens = quote! {
+        __HASH_TOKEN__ ifndef #guard_name __NEWLINE__
+        __HASH_TOKEN__ define #guard_name __NEWLINE__
+        #cc_details_tokens
+        __HASH_TOKEN__ endif __NEWLINE__
+        __NEWLINE__
+    };
+    ApiSnippets {
+        main_api: CcSnippet { tokens: main_api_tokens, prereqs },
+        cc_details: CcSnippet::new(cc_details_tokens),
+        rs_details,
+    }
+}
+
+trait TemplateSpecializationExt<'tcx> {
+    fn api_snippets(self, db: &BindingsGenerator<'tcx>) -> ApiSnippets<'tcx>;
+}
+
+impl<'tcx> TemplateSpecializationExt<'tcx> for RsStdEnumTemplateSpecialization<'tcx> {
+    fn api_snippets(self, db: &BindingsGenerator<'tcx>) -> ApiSnippets<'tcx> {
+        use database::code_snippet::TemplateSpecializationKind;
+        match self.kind {
+            TemplateSpecializationKind::Option { arg_ty } => {
+                let arg_ty_ty = arg_ty.ty;
+                let mut snippets = specialize_option(self.core, db, arg_ty);
+                snippets.main_api.prereqs.forward_declare_type(arg_ty_ty);
+                snippets
+            }
+            TemplateSpecializationKind::Result { ok_ty, err_ty } => {
+                let ok_ty_ty = ok_ty.ty;
+                let err_ty_ty = err_ty.ty;
+                let mut snippets = specialize_result(self.core, db, ok_ty, err_ty);
+                snippets.main_api.prereqs.forward_declare_type(ok_ty_ty);
+                snippets.main_api.prereqs.forward_declare_type(err_ty_ty);
+                snippets
+            }
+        }
+    }
 }
 
 /// Generate a template specialization.
@@ -1033,40 +1147,9 @@ pub fn generate_template_specialization<'tcx>(
     db: &BindingsGenerator<'tcx>,
     specialization: TemplateSpecialization<'tcx>,
 ) -> ApiSnippets<'tcx> {
-    let snippet_res: Result<ApiSnippets<'tcx>, (Ty<'tcx>, arc_anyhow::Error)> =
-        match &specialization {
-            TemplateSpecialization::RsStdOption { arg_ty, self_ty } => {
-                specialize_option(db, *arg_ty, *self_ty)
-                    .map(|mut snippets| {
-                        snippets.main_api.prereqs.forward_declare_type(*arg_ty);
-                        snippets
-                    })
-                    .map_err(|e| (*self_ty, e))
-            }
-            TemplateSpecialization::RsStdResult { ok_ty, err_ty, self_ty } => {
-                specialize_result(db, *ok_ty, *err_ty, *self_ty)
-                    .map(|mut snippets| {
-                        snippets.main_api.prereqs.forward_declare_type(*ok_ty);
-                        snippets.main_api.prereqs.forward_declare_type(*err_ty);
-                        snippets
-                    })
-                    .map_err(|e| (*self_ty, e))
-            }
-        };
-
-    let mut snippets = snippet_res.unwrap_or_else(|(ty, err)| {
-        use rustc_hir::def::Namespace;
-        use rustc_middle::ty::print::FmtPrinter;
-        use rustc_middle::ty::print::PrettyPrinter;
-        let tcx = db.tcx();
-        let name =
-            FmtPrinter::print_string(tcx, Namespace::TypeNS, |fmt| fmt.pretty_print_type(ty))
-                .unwrap_or_else(|_| "<unknown type>".to_string());
-        let msg = format!("Error generating specialization for `{name}`: {err:#}");
-        ApiSnippets::comment_only(&msg).prepend_main_api(CcSnippet::new(quote! {
-            __NEWLINE__ __NEWLINE__
-        }))
-    });
+    let mut snippets = match &specialization {
+        TemplateSpecialization::RsStdEnum(rs_std_enum) => rs_std_enum.clone().api_snippets(db),
+    };
     // Because we reuse logic from generate_struct_and_union here, we will add our `self_ty` as a template specialization of it's own specialization creating a depedency cycle.
     // We break that loop manually here to avoid that.
     snippets.main_api.prereqs.template_specializations.remove(&specialization);

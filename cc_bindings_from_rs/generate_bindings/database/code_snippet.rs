@@ -20,6 +20,7 @@ use std::cmp::Ordering;
 use std::collections::BTreeSet;
 use std::collections::HashSet;
 use std::fmt;
+use std::hash::{Hash, Hasher};
 use std::ops::{Add, AddAssign};
 
 /// A CrubitAbiType that has C++ prerequisites.
@@ -79,10 +80,105 @@ pub struct CcPrerequisites<'tcx> {
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub enum TemplateSpecialization<'tcx> {
-    /// Our layout compatible type for `std::option::Option`.
-    RsStdOption { arg_ty: Ty<'tcx>, self_ty: Ty<'tcx> },
-    /// Our layout compatible type for `std::result::Result`.
-    RsStdResult { ok_ty: Ty<'tcx>, err_ty: Ty<'tcx>, self_ty: Ty<'tcx> },
+    RsStdEnum(RsStdEnumTemplateSpecialization<'tcx>),
+}
+
+#[derive(Clone, Debug)]
+pub struct RsStdEnumTemplateSpecializationCore<'tcx> {
+    pub layout: rustc_abi::Layout<'tcx>,
+    pub self_ty_rs: Ty<'tcx>,
+    pub self_ty_cc: CcSnippet<'tcx>,
+    pub tag_type_rs: Ty<'tcx>,
+    pub tag_type_cc: CcSnippet<'tcx>,
+}
+
+#[derive(Clone, Debug)]
+pub struct RsStdEnumTemplateSpecialization<'tcx> {
+    pub core: RsStdEnumTemplateSpecializationCore<'tcx>,
+    pub kind: TemplateSpecializationKind<'tcx>,
+}
+
+impl PartialEq for RsStdEnumTemplateSpecialization<'_> {
+    fn eq(&self, other: &Self) -> bool {
+        self.core.self_ty_rs == other.core.self_ty_rs
+    }
+}
+impl Eq for RsStdEnumTemplateSpecialization<'_> {}
+
+impl Hash for RsStdEnumTemplateSpecialization<'_> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.core.self_ty_rs.hash(state);
+    }
+}
+
+#[derive(Clone, Debug)]
+pub enum TemplateSpecializationKind<'tcx> {
+    Option { arg_ty: FormattedTy<'tcx> },
+    Result { ok_ty: FormattedTy<'tcx>, err_ty: FormattedTy<'tcx> },
+}
+impl PartialEq for TemplateSpecializationKind<'_> {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (
+                TemplateSpecializationKind::Option { arg_ty: self_arg_ty },
+                TemplateSpecializationKind::Option { arg_ty: other_arg_ty },
+            ) => self_arg_ty == other_arg_ty,
+            (
+                TemplateSpecializationKind::Result {
+                    ok_ty: self_ok_ty, err_ty: self_err_ty, ..
+                },
+                TemplateSpecializationKind::Result {
+                    ok_ty: other_ok_ty, err_ty: other_err_ty, ..
+                },
+            ) => self_ok_ty == other_ok_ty && self_err_ty == other_err_ty,
+            _ => false,
+        }
+    }
+}
+impl Eq for TemplateSpecializationKind<'_> {}
+impl Hash for TemplateSpecializationKind<'_> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        match self {
+            TemplateSpecializationKind::Option { arg_ty } => {
+                state.write_u8(0);
+                arg_ty.hash(state);
+            }
+            TemplateSpecializationKind::Result { ok_ty, err_ty } => {
+                state.write_u8(1);
+                ok_ty.hash(state);
+                err_ty.hash(state);
+            }
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct FormattedTy<'tcx> {
+    pub ty: Ty<'tcx>,
+    pub for_cc: CcSnippet<'tcx>,
+    pub for_rs: TokenStream,
+}
+impl<'tcx> FormattedTy<'tcx> {
+    pub fn try_from_ty(
+        ty: Ty<'tcx>,
+        location: crate::TypeLocation,
+        db: &crate::BindingsGenerator<'tcx>,
+    ) -> Result<Self> {
+        let for_cc = db.format_ty_for_cc(ty, location)?;
+        let for_rs = db.format_ty_for_rs(ty)?;
+        Ok(Self { ty, for_cc, for_rs })
+    }
+}
+impl PartialEq for FormattedTy<'_> {
+    fn eq(&self, other: &Self) -> bool {
+        self.ty == other.ty
+    }
+}
+impl Eq for FormattedTy<'_> {}
+impl Hash for FormattedTy<'_> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.ty.hash(state);
+    }
 }
 
 impl<'tcx> CcPrerequisites<'tcx> {
